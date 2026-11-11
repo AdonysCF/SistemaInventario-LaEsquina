@@ -29,6 +29,7 @@ public class ProductoDAO {
                 p.setStockMinimo(rs.getInt("stock_minimo"));
                 p.setEstadoAlerta(rs.getString("estado_alerta"));
                 p.setActivo(rs.getBoolean("activo"));
+                p.setRutaImagen(rs.getString("ruta_imagen"));
                 lista.add(p);
             }
         } catch (Exception e) {

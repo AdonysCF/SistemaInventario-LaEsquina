@@ -37,7 +37,7 @@ public class AuthController extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         
-        String user = request.getParameter("txtUsername");
+        String user = request.getParameter("txtUsuario");
         String pass = request.getParameter("txtPassword");
         
         Usuario usuarioLogueado = usuarioService.validarLogin(user, pass);

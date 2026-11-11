@@ -3,6 +3,7 @@ package modelo;
 import java.math.BigDecimal;
 
 public class Producto {
+
     private int idProducto;
     private String codigoSku;
     private String nombre;
@@ -12,13 +13,14 @@ public class Producto {
     private int stockMinimo;
     private String estadoAlerta;
     private boolean activo;
+    private String rutaImagen;
     // La fecha de actualización generalmente se maneja en BD con GETDATE()
 
     // Genera un constructor vacío
-    public Producto() {}
+    public Producto() {
+    }
 
     // Genera todos los Getters y Setters (Clic derecho -> Insert Code -> Getter and Setter...)
-
     public int getIdProducto() {
         return idProducto;
     }
@@ -89,5 +91,13 @@ public class Producto {
 
     public void setActivo(boolean activo) {
         this.activo = activo;
+    }
+
+    public String getRutaImagen() {
+        return rutaImagen;
+    }
+
+    public void setRutaImagen(String rutaImagen) {
+        this.rutaImagen = rutaImagen;
     }
 }

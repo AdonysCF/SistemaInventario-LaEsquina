@@ -1,74 +1,107 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
+<%@taglib uri="jakarta.tags.core" prefix="c" %>
+<%
+    // Verificación de sesión activa
+    modelo.Usuario usr = (modelo.Usuario) session.getAttribute("usuarioSesion");
+    if (usr != null) {
+        if (usr.getRol().equals("GERENTE")) { response.sendRedirect("panelGerente.jsp"); }
+        else { response.sendRedirect("panelCajero.jsp"); }
+        return;
+    }
+%>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Tienda La Esquina</title>
-    <!-- Incluimos Bootstrap para un diseño rápido y profesional -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Iniciar Sesión - La Esquina</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
     <style>
-        body {
-            background-color: #f4f7f6;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
+        :root {
+            --color-navy: #10253F;
+            --color-mustard: #EAA81B;
         }
-        .login-card {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            width: 100%;
-            max-width: 400px;
+        body { background-color: #f4f6f9; }
+        .text-navy { color: var(--color-navy) !important; }
+        .btn-mustard {
+            background-color: var(--color-mustard);
+            color: #000;
+            border: none;
+            transition: all 0.3s;
         }
-        .brand-title {
-            color: #2c3e50;
-            font-weight: bold;
-            text-align: center;
-            margin-bottom: 20px;
+        .btn-mustard:hover { background-color: #d19315; }
+        .card-login {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+        }
+        /* Ajustes específicos para las etiquetas flotantes */
+        .form-floating > label {
+            color: #6c757d; /* Color gris suave cuando está inactivo */
+        }
+        .form-floating > .form-control:focus ~ label,
+        .form-floating > .form-control:not(:placeholder-shown) ~ label {
+            color: var(--color-navy); /* Color azul marino cuando sube la etiqueta */
+            font-weight: 500;
+        }
+        .form-control:focus {
+            border-color: var(--color-navy);
+            box-shadow: 0 0 0 0.25rem rgba(16, 37, 63, 0.15);
         }
     </style>
 </head>
-<body>
+<body class="d-flex justify-content-center align-items-center vh-100">
 
-    <div class="login-card">
-        <h3 class="brand-title">Tienda "La Esquina"</h3>
-        <h5 class="text-center text-muted mb-4">Sistema de Inventario</h5>
-        
-        <!-- Bloque para mostrar mensajes de error desde el AuthController -->
-        <% 
-            String error = (String) request.getAttribute("errorMensaje");
-            if (error != null) { 
-        %>
-            <div class="alert alert-danger" role="alert">
-                <%= error %>
-            </div>
-        <% } %>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12 col-sm-8 col-md-6 col-lg-4">
+                
+                <div class="card card-login p-4">
+                    <div class="card-body text-center">
+                        
+                        <img src="img/logo.png" alt="Logo La Esquina" class="img-fluid mb-4" style="max-height: 90px;">
+                        <h5 class="text-navy fw-bold mb-4">Acceso al Sistema</h5>
 
-        <!-- Formulario que envía los datos al AuthController mediante POST -->
-        <form action="login" method="POST">
-            <div class="mb-3">
-                <label for="txtUsername" class="form-label">Usuario</label>
-                <!-- El atributo 'name' es clave para recuperar el dato en el Servlet -->
-                <input type="text" class="form-control" id="txtUsername" name="txtUsername" required placeholder="Ingrese su usuario">
+                        <c:if test="${not empty mensajeError}">
+                            <div class="alert alert-danger py-2 text-start" role="alert">
+                                <small>${mensajeError}</small>
+                            </div>
+                        </c:if>
+
+                        <form action="login" method="POST">
+                            
+                            <!-- ETIQUETA FLOTANTE: Nombre de usuario -->
+                            <div class="form-floating mb-3">
+                                <!-- Nota: el placeholder=" " es vital para que funcione el efecto flotante en Bootstrap -->
+                                <input type="text" class="form-control" id="txtUsuario" name="txtUsuario" placeholder=" " required autocomplete="off">
+                                <label for="txtUsuario">Nombre de usuario</label>
+                            </div>
+
+                            <!-- ETIQUETA FLOTANTE: Contraseña -->
+                            <div class="form-floating mb-4">
+                                <!-- Nota: el placeholder=" " es vital -->
+                                <input type="password" class="form-control" id="txtPassword" name="txtPassword" placeholder=" " required>
+                                <label for="txtPassword">Contraseña</label>
+                            </div>
+
+                            <button type="submit" class="btn btn-mustard w-100 py-2 fw-bold fs-5 shadow-sm">
+                                Iniciar Sesión
+                            </button>
+                        </form>
+                        
+                    </div>
+                </div>
+                
+                <div class="text-center mt-4 text-muted small">
+                    &copy; 2026 La Esquina - Sistema de Gestión de Inventario
+                </div>
+
             </div>
-            
-            <div class="mb-4">
-                <label for="txtPassword" class="form-label">Contraseña</label>
-                <!-- El atributo 'name' debe coincidir con request.getParameter() -->
-                <input type="password" class="form-control" id="txtPassword" name="txtPassword" required placeholder="Ingrese su contraseña">
-            </div>
-            
-            <button type="submit" class="btn btn-primary w-100">Ingresar al Sistema</button>
-        </form>
-        
-        <div class="text-center mt-3">
-            <small class="text-muted">Desarrollado para el Proyecto T2 - Arquitectura MVC</small>
         </div>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Script de Bootstrap necesario para algunas interacciones -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
