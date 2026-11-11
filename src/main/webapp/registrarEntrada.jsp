@@ -2,7 +2,6 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib uri="jakarta.tags.core" prefix="c" %>
 <%
-    // Seguridad (AC-03)
     Usuario usr = (Usuario) session.getAttribute("usuarioSesion");
     if (usr == null) { response.sendRedirect("index.jsp"); return; }
 %>
@@ -33,6 +32,14 @@
             border: none;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .img-miniatura {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+            border-radius: 4px;
+            background-color: white;
+            border: 1px solid #dee2e6;
         }
     </style>
 </head>
@@ -73,7 +80,6 @@
 
         <form action="EntradaServlet" method="POST" id="formEntrada">
             
-            <!-- PANEL SUPERIOR: Cabecera -->
             <div class="card card-custom mb-4">
                 <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
                     <h5 class="fw-bold text-navy"><i class="bi bi-file-earmark-text me-2"></i>1. Datos del Documento</h5>
@@ -97,7 +103,6 @@
             </div>
 
             <div class="row g-4">
-                <!-- PANEL IZQUIERDO: Búsqueda y Selección -->
                 <div class="col-md-5">
                     <div class="card card-custom h-100">
                         <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
@@ -106,9 +111,13 @@
                         <div class="card-body">
                             <div class="form-floating mb-3">
                                 <select id="selProducto" class="form-select" onchange="mostrarInfoProductoEntrada()">
-                                    <option value="" data-stock="0">-- Seleccione un producto --</option>
+                                    <option value="" data-stock="0" data-img="">-- Seleccione un producto --</option>
                                     <c:forEach var="p" items="${listaProductos}">
-                                        <option value="${p.idProducto}" data-nombre="${p.nombre}" data-stock="${p.stockActual}" data-sku="${p.codigoSku}">
+                                        <option value="${p.idProducto}" 
+                                                data-nombre="${p.nombre}" 
+                                                data-stock="${p.stockActual}" 
+                                                data-sku="${p.codigoSku}"
+                                                data-img="${not empty p.rutaImagen ? p.rutaImagen : 'img/productos/default.png'}">
                                             ${p.codigoSku} - ${p.nombre}
                                         </option>
                                     </c:forEach>
@@ -116,9 +125,10 @@
                                 <label for="selProducto">Buscar producto activo</label>
                             </div>
                             
-                            <div class="bg-light p-3 rounded mb-3">
-                                <div class="d-flex justify-content-between mb-2">
-                                    <span class="text-muted">Stock Físico Actual:</span>
+                            <div class="bg-light p-3 rounded mb-3 d-flex align-items-center justify-content-between border">
+                                <img id="imgPreviaEntrada" src="img/productos/default.png" alt="Previa" style="max-height: 50px; max-width: 50px; object-fit: contain;">
+                                <div class="text-end">
+                                    <span class="text-muted d-block small">Stock Físico Actual:</span>
                                     <span id="lblStockActual" class="fw-bold fs-5 text-navy">0 und.</span>
                                 </div>
                             </div>
@@ -140,30 +150,30 @@
                     </div>
                 </div>
 
-                <!-- PANEL DERECHO: Lista de Ingreso -->
                 <div class="col-md-7">
                     <div class="card card-custom h-100">
                         <div class="card-header bg-success text-white py-3">
                             <h5 class="card-title mb-0 fw-bold"><i class="bi bi-list-check me-2"></i>3. Detalle de Recepción</h5>
                         </div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
-                                <table class="table table-hover mb-0" id="tablaEntrada">
+                        <div class="card-body p-0 d-flex flex-column h-100">
+                            <div class="table-responsive flex-grow-1" style="max-height: 300px; overflow-y: auto;">
+                                <table class="table table-hover align-middle mb-0" id="tablaEntrada">
                                     <thead class="table-light sticky-top">
                                         <tr>
+                                            <th>Imagen</th>
                                             <th>SKU</th>
                                             <th>Producto</th>
-                                            <th class="text-center">Cant. Ingreso</th>
+                                            <th class="text-center">Ingreso</th>
                                             <th class="text-center">Quitar</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <!-- Filas inyectadas por JS -->
+                                        <!-- JS inyecta filas -->
                                     </tbody>
                                 </table>
                             </div>
                             
-                            <div class="p-4 bg-light border-top">
+                            <div class="p-4 bg-light border-top mt-auto">
                                 <button type="submit" class="btn btn-success btn-lg w-100 fw-bold shadow-sm" id="btnGuardarEntrada" disabled>
                                     <i class="bi bi-save me-2"></i>Confirmar Entrada y Actualizar Kardex
                                 </button>
@@ -181,10 +191,12 @@
             let sel = document.getElementById("selProducto");
             if(sel.value === "") {
                 document.getElementById("lblStockActual").innerText = "0 und.";
+                document.getElementById("imgPreviaEntrada").src = "img/productos/default.png";
                 return;
             }
             let opt = sel.options[sel.selectedIndex];
             document.getElementById("lblStockActual").innerText = opt.getAttribute("data-stock") + " und.";
+            document.getElementById("imgPreviaEntrada").src = opt.getAttribute("data-img");
         }
 
         function agregarItemEntrada() {
@@ -195,6 +207,7 @@
             let idProd = sel.value;
             let sku = opt.getAttribute("data-sku");
             let nombre = opt.getAttribute("data-nombre");
+            let imgSrc = opt.getAttribute("data-img");
             let cant = parseInt(document.getElementById("numCantidadIngreso").value);
 
             if (cant <= 0 || isNaN(cant)) { alert("La cantidad debe ser mayor a cero."); return; }
@@ -203,6 +216,9 @@
             let fila = tbody.insertRow();
 
             fila.innerHTML = `
+                <td class="text-center">
+                    <img src="\${imgSrc}" alt="Prod" class="img-miniatura">
+                </td>
                 <td class="fw-bold text-muted">\${sku}</td>
                 <td>
                     <input type="hidden" name="idProducto[]" value="\${idProd}">

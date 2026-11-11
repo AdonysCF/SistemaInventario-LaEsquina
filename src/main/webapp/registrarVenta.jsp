@@ -40,6 +40,14 @@
             color: var(--color-mustard);
             line-height: 1;
         }
+        .img-miniatura {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+            border-radius: 4px;
+            background-color: white;
+            border: 1px solid #dee2e6;
+        }
     </style>
 </head>
 <body>
@@ -81,9 +89,13 @@
                         
                         <div class="form-floating mb-4">
                             <select id="selProductoVenta" class="form-select form-select-lg" onchange="mostrarInfoProductoVenta()">
-                                <option value="" data-precio="0" data-stock="0">-- Seleccione un producto --</option>
+                                <option value="" data-precio="0" data-stock="0" data-img="">-- Seleccione un producto --</option>
                                 <c:forEach var="p" items="${listaProductos}">
-                                    <option value="${p.idProducto}" data-nombre="${p.nombre}" data-precio="${p.precioUnitario}" data-stock="${p.stockActual}">
+                                    <option value="${p.idProducto}" 
+                                            data-nombre="${p.nombre}" 
+                                            data-precio="${p.precioUnitario}" 
+                                            data-stock="${p.stockActual}"
+                                            data-img="${not empty p.rutaImagen ? p.rutaImagen : 'img/productos/default.png'}">
                                         ${p.codigoSku} - ${p.nombre}
                                     </option>
                                 </c:forEach>
@@ -92,16 +104,20 @@
                         </div>
                         
                         <div class="row g-3 mb-4">
-                            <div class="col-6">
-                                <div class="p-3 bg-light rounded text-center border">
-                                    <span class="d-block text-muted small text-uppercase fw-bold mb-1">Precio Unitario</span>
-                                    <span id="lblPrecioVenta" class="fs-4 fw-bold text-navy">S/ 0.00</span>
+                            <div class="col-4 d-flex justify-content-center align-items-center">
+                                <!-- Previsualización de la imagen -->
+                                <img id="imgPreviaVenta" src="img/productos/default.png" alt="Previa" style="max-height: 80px; max-width: 100%; object-fit: contain;">
+                            </div>
+                            <div class="col-4">
+                                <div class="p-3 bg-light rounded text-center border h-100 d-flex flex-column justify-content-center">
+                                    <span class="d-block text-muted small text-uppercase fw-bold mb-1">P. Unit</span>
+                                    <span id="lblPrecioVenta" class="fs-5 fw-bold text-navy">S/ 0.00</span>
                                 </div>
                             </div>
-                            <div class="col-6">
-                                <div class="p-3 bg-light rounded text-center border">
-                                    <span class="d-block text-muted small text-uppercase fw-bold mb-1">Stock Disponible</span>
-                                    <span id="lblStockVenta" class="fs-4 fw-bold text-secondary">0 und.</span>
+                            <div class="col-4">
+                                <div class="p-3 bg-light rounded text-center border h-100 d-flex flex-column justify-content-center">
+                                    <span class="d-block text-muted small text-uppercase fw-bold mb-1">Stock</span>
+                                    <span id="lblStockVenta" class="fs-5 fw-bold text-secondary">0</span>
                                 </div>
                             </div>
                         </div>
@@ -139,6 +155,7 @@
                                 <table class="table table-hover align-middle" id="tablaCarrito">
                                     <thead class="table-light sticky-top">
                                         <tr>
+                                            <th>Imagen</th>
                                             <th>Producto</th>
                                             <th class="text-center">Cant.</th>
                                             <th class="text-end">P. Unit</th>
@@ -173,21 +190,23 @@
             let sel = document.getElementById("selProductoVenta");
             if(sel.value === "") {
                 document.getElementById("lblPrecioVenta").innerText = "S/ 0.00";
-                document.getElementById("lblStockVenta").innerText = "0 und.";
-                document.getElementById("lblStockVenta").className = "fs-4 fw-bold text-secondary";
+                document.getElementById("lblStockVenta").innerText = "0";
+                document.getElementById("lblStockVenta").className = "fs-5 fw-bold text-secondary";
+                document.getElementById("imgPreviaVenta").src = "img/productos/default.png";
                 return;
             }
             let opt = sel.options[sel.selectedIndex];
             document.getElementById("lblPrecioVenta").innerText = "S/ " + parseFloat(opt.getAttribute("data-precio")).toFixed(2);
+            document.getElementById("imgPreviaVenta").src = opt.getAttribute("data-img");
             
             let stock = parseInt(opt.getAttribute("data-stock"));
             let lblStock = document.getElementById("lblStockVenta");
-            lblStock.innerText = stock + " und.";
+            lblStock.innerText = stock;
             
             // RN-02 Ayuda visual
-            if(stock === 0) lblStock.className = "fs-4 fw-bold text-danger";
-            else if(stock <= 5) lblStock.className = "fs-4 fw-bold text-warning";
-            else lblStock.className = "fs-4 fw-bold text-success";
+            if(stock === 0) lblStock.className = "fs-5 fw-bold text-danger";
+            else if(stock <= 5) lblStock.className = "fs-5 fw-bold text-warning";
+            else lblStock.className = "fs-5 fw-bold text-success";
         }
 
         function agregarAlCarrito() {
@@ -199,11 +218,11 @@
             let nombre = opt.getAttribute("data-nombre");
             let precioU = parseFloat(opt.getAttribute("data-precio"));
             let stockReal = parseInt(opt.getAttribute("data-stock"));
+            let imgSrc = opt.getAttribute("data-img");
             let cant = parseInt(document.getElementById("numCantidadVenta").value);
 
             if (cant <= 0 || isNaN(cant)) { alert("La cantidad debe ser mayor a cero."); return; }
             
-            // RN-02 Validación de stock en frontend
             if (cant > stockReal) {
                 alert("¡Stock insuficiente!\nSolo quedan " + stockReal + " unidades de " + nombre + ".");
                 return;
@@ -216,6 +235,9 @@
             let fila = tbody.insertRow();
 
             fila.innerHTML = `
+                <td class="text-center">
+                    <img src="\${imgSrc}" alt="Prod" class="img-miniatura">
+                </td>
                 <td class="fw-bold">
                     <input type="hidden" name="idProducto[]" value="\${idProd}">
                     \${nombre}
