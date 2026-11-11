@@ -2,16 +2,20 @@
 package controller;
 
 import dao.ProductoDAO;
+import service.ExcepcionNegocio;
 import service.InventarioService;
+
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
+
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+
 import modelo.DetalleMovimiento;
 import modelo.MovimientoInventario;
 import modelo.Usuario;
@@ -55,10 +59,8 @@ public class AjusteServlet extends HttpServlet {
             return;
         }
 
-        // 1. Obtener los datos generales del formulario.
         String tipoAjuste = request.getParameter("txtTipoAjusteFinal");
 
-        // Si no existe el campo oculto, intentar leer el select.
         if (tipoAjuste == null || tipoAjuste.trim().isEmpty()) {
             tipoAjuste = request.getParameter("selTipoAjuste");
         }
@@ -66,140 +68,160 @@ public class AjusteServlet extends HttpServlet {
         String documento = request.getParameter("txtDocumento");
         String observacion = request.getParameter("txtObservacion");
 
-        // 2. Obtener los arreglos de productos y cantidades.
         String[] idsProductos = request.getParameterValues("idProducto[]");
         String[] cantidades = request.getParameterValues("cantidad[]");
 
-        // 3. Validar el tipo de ajuste.
         if (!"AJUSTE_POSITIVO".equals(tipoAjuste)
                 && !"AJUSTE_NEGATIVO".equals(tipoAjuste)) {
 
-            mostrarError(request, response,
-                    "Seleccione un tipo de ajuste válido.");
+            mostrarError(
+                    request,
+                    response,
+                    "Seleccione un tipo de ajuste válido."
+            );
             return;
         }
 
-        // 4. Validar el documento de sustento.
         if (documento == null || documento.trim().isEmpty()) {
-            mostrarError(request, response,
-                    "El documento de sustento es obligatorio.");
+            mostrarError(
+                    request,
+                    response,
+                    "El documento de sustento es obligatorio."
+            );
             return;
         }
 
-        // 5. Validar la observación.
         if (observacion == null || observacion.trim().isEmpty()) {
-            mostrarError(request, response,
-                    "Debe ingresar el motivo detallado del ajuste.");
+            mostrarError(
+                    request,
+                    response,
+                    "Debe ingresar el motivo detallado del ajuste."
+            );
             return;
         }
 
-        // 6. Comprobar que se hayan enviado productos.
         if (idsProductos == null || cantidades == null
                 || idsProductos.length == 0
                 || cantidades.length == 0) {
 
-            mostrarError(request, response,
-                    "Debe agregar al menos un producto al ajuste.");
+            mostrarError(
+                    request,
+                    response,
+                    "Debe agregar al menos un producto al ajuste."
+            );
             return;
         }
 
-        // Ambos arreglos deben tener la misma cantidad de elementos.
         if (idsProductos.length != cantidades.length) {
-            mostrarError(request, response,
-                    "Los productos y sus cantidades no coinciden.");
+            mostrarError(
+                    request,
+                    response,
+                    "Los productos y sus cantidades no coinciden."
+            );
             return;
         }
 
-        // 7. Crear la cabecera del movimiento.
-        MovimientoInventario mov = new MovimientoInventario();
+        MovimientoInventario movimiento = new MovimientoInventario();
 
-        mov.setCodigoMovimiento("AJU-" + System.currentTimeMillis());
-        mov.setTipoMovimiento(tipoAjuste);
-        mov.setDocumentoReferencia(documento.trim());
-        mov.setObservacion(observacion.trim());
-        mov.setIdUsuario(usr.getIdUsuario());
+        movimiento.setCodigoMovimiento("AJU-" + System.currentTimeMillis());
+        movimiento.setTipoMovimiento(tipoAjuste);
+        movimiento.setDocumentoReferencia(documento.trim());
+        movimiento.setObservacion(observacion.trim());
+        movimiento.setIdUsuario(usr.getIdUsuario());
 
-        // 8. Procesar todos los productos enviados.
         Set<Integer> productosRegistrados = new HashSet<>();
 
         try {
 
             for (int i = 0; i < idsProductos.length; i++) {
 
-                // Validar que los campos no estén vacíos.
                 if (idsProductos[i] == null
                         || idsProductos[i].trim().isEmpty()
                         || cantidades[i] == null
                         || cantidades[i].trim().isEmpty()) {
 
-                    mostrarError(request, response,
-                            "Se encontró un producto o cantidad vacía.");
+                    mostrarError(
+                            request,
+                            response,
+                            "Se encontró un producto o cantidad vacía."
+                    );
                     return;
                 }
 
                 int idProducto = Integer.parseInt(idsProductos[i].trim());
                 int cantidad = Integer.parseInt(cantidades[i].trim());
 
-                // Validar el identificador del producto.
                 if (idProducto <= 0) {
-                    mostrarError(request, response,
-                            "Se encontró un identificador de producto inválido.");
+                    mostrarError(
+                            request,
+                            response,
+                            "Se encontró un identificador de producto inválido."
+                    );
                     return;
                 }
 
-                // Validar que la cantidad sea positiva.
                 if (cantidad <= 0) {
-                    mostrarError(request, response,
-                            "Todas las cantidades deben ser mayores a cero.");
+                    mostrarError(
+                            request,
+                            response,
+                            "Todas las cantidades deben ser mayores a cero."
+                    );
                     return;
                 }
 
-                // Evitar que un producto se envíe varias veces.
                 if (!productosRegistrados.add(idProducto)) {
-                    mostrarError(request, response,
-                            "No puede agregar el mismo producto más de una vez.");
+                    mostrarError(
+                            request,
+                            response,
+                            "No puede agregar el mismo producto más de una vez."
+                    );
                     return;
                 }
 
-                // Crear el detalle del movimiento.
                 DetalleMovimiento detalle = new DetalleMovimiento();
-
                 detalle.setIdProducto(idProducto);
                 detalle.setCantidad(cantidad);
 
-                mov.agregarDetalle(detalle);
+                movimiento.agregarDetalle(detalle);
             }
+
+            String resultado = inventarioService.registrarAjuste(movimiento);
+
+            if (resultado != null && resultado.startsWith("EXITO")) {
+                request.setAttribute("mensajeExito", resultado);
+            } else {
+                request.setAttribute(
+                        "mensajeError",
+                        resultado != null
+                                ? resultado
+                                : "No se pudo completar el ajuste."
+                );
+            }
+
+        } catch (ExcepcionNegocio ex) {
+
+            request.setAttribute("mensajeError", obtenerMensajeNegocio(ex));
 
         } catch (NumberFormatException ex) {
 
-            mostrarError(request, response,
-                    "Los identificadores y las cantidades deben ser números enteros válidos.");
-            return;
+            request.setAttribute(
+                    "mensajeError",
+                    "Los identificadores y las cantidades deben ser números enteros válidos."
+            );
+
+        } catch (Exception ex) {
+
+            request.setAttribute(
+                    "mensajeError",
+                    "Ocurrió un error inesperado al procesar el ajuste."
+            );
+
+            getServletContext().log("Error inesperado en AjusteServlet", ex);
         }
 
-        // 9. Enviar el movimiento completo al servicio.
-        String resultado = inventarioService.registrarAjuste(mov);
-
-        // 10. Mostrar el resultado de la operación.
-        if (resultado != null && resultado.startsWith("EXITO")) {
-
-            request.setAttribute("mensajeExito", resultado);
-
-        } else {
-
-            request.setAttribute("mensajeError",
-                    resultado != null
-                            ? resultado
-                            : "No se pudo completar el ajuste.");
-        }
-
-        // Volver a mostrar el formulario con la lista de productos.
         mostrarFormulario(request, response);
     }
 
-    /**
-     * Comprueba que exista una sesión con un usuario de rol GERENTE.
-     */
     private Usuario obtenerUsuarioGerente(HttpServletRequest request) {
 
         HttpSession session = request.getSession(false);
@@ -217,9 +239,6 @@ public class AjusteServlet extends HttpServlet {
         return usr;
     }
 
-    /**
-     * Carga los productos activos y muestra el formulario.
-     */
     private void mostrarFormulario(
             HttpServletRequest request,
             HttpServletResponse response)
@@ -234,9 +253,6 @@ public class AjusteServlet extends HttpServlet {
                 .forward(request, response);
     }
 
-    /**
-     * Establece un mensaje de error y vuelve a mostrar el formulario.
-     */
     private void mostrarError(
             HttpServletRequest request,
             HttpServletResponse response,
@@ -245,5 +261,25 @@ public class AjusteServlet extends HttpServlet {
 
         request.setAttribute("mensajeError", mensaje);
         mostrarFormulario(request, response);
+    }
+
+    private String obtenerMensajeNegocio(ExcepcionNegocio ex) {
+
+        switch (ex.getTipo()) {
+            case DATOS_INVALIDOS:
+                return ex.getMessage();
+
+            case PRODUCTO_NO_ENCONTRADO:
+                return "Uno de los productos seleccionados no existe o no está disponible.";
+
+            case STOCK_INSUFICIENTE:
+                return ex.getMessage();
+
+            case OPERACION_NO_PERMITIDA:
+                return ex.getMessage();
+
+            default:
+                return "No se pudo completar el ajuste por una regla de negocio.";
+        }
     }
 }

@@ -1,43 +1,42 @@
+
 package controller;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+
 import modelo.DetalleMovimiento;
 import modelo.MovimientoInventario;
+import modelo.Producto;
 import modelo.Usuario;
+
+import service.ExcepcionNegocio;
 import service.InventarioService;
 
 @WebServlet(name = "EntradaServlet", urlPatterns = {"/EntradaServlet"})
 public class EntradaServlet extends HttpServlet {
 
-    private InventarioService inventarioService = new InventarioService();
+    private final InventarioService inventarioService = new InventarioService();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        
-        // Validar que exista la sesión
-        if (request.getSession().getAttribute("usuarioSesion") == null) {
+
+        HttpSession session = request.getSession(false);
+
+        if (session == null || session.getAttribute("usuarioSesion") == null) {
             response.sendRedirect("index.jsp");
             return;
         }
 
-        // 1. Instanciar el DAO de productos
-        dao.ProductoDAO productoDAO = new dao.ProductoDAO();
-        
-        // 2. Obtener la lista de todos los productos activos
-        List<modelo.Producto> listaProductos = productoDAO.listarTodosActivos();
-        
-        // 3. Guardar la lista en el request para que el JSP la pueda leer
-        request.setAttribute("listaProductos", listaProductos);
-        
-        // 4. Enviar (forward) a la página registrarEntrada.jsp junto con los datos
+        cargarProductos(request);
         request.getRequestDispatcher("registrarEntrada.jsp").forward(request, response);
     }
 
@@ -45,63 +44,170 @@ public class EntradaServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        // 1. Validar la sesión
-        Usuario usr = (Usuario) request.getSession().getAttribute("usuarioSesion");
+        request.setCharacterEncoding("UTF-8");
+
+        HttpSession session = request.getSession(false);
+
+        if (session == null) {
+            response.sendRedirect("index.jsp");
+            return;
+        }
+
+        Usuario usr = (Usuario) session.getAttribute("usuarioSesion");
+
         if (usr == null) {
             response.sendRedirect("index.jsp");
             return;
         }
 
-        // 2. Obtener la cabecera del formulario
         String documento = request.getParameter("txtDocumento");
         String observacion = request.getParameter("txtObservacion");
 
-        // 3. Obtener los detalles del ingreso
         String[] idProductos = request.getParameterValues("idProducto[]");
         String[] cantidades = request.getParameterValues("cantidad[]");
 
-        if (documento == null || documento.trim().isEmpty() || idProductos == null || idProductos.length == 0) {
-            request.getSession().setAttribute("mensajeError", "Debe indicar el documento de referencia y agregar al menos un producto.");
+        if (documento == null || documento.trim().isEmpty()) {
+            session.setAttribute(
+                    "mensajeError",
+                    "Debe indicar el documento de referencia."
+            );
+
+            response.sendRedirect("registrarEntrada.jsp");
+            return;
+        }
+
+        if (idProductos == null || cantidades == null
+                || idProductos.length == 0) {
+
+            session.setAttribute(
+                    "mensajeError",
+                    "Debe agregar al menos un producto al ingreso."
+            );
+
+            response.sendRedirect("registrarEntrada.jsp");
+            return;
+        }
+
+        if (idProductos.length != cantidades.length) {
+            session.setAttribute(
+                    "mensajeError",
+                    "Los productos y sus cantidades no coinciden."
+            );
+
             response.sendRedirect("registrarEntrada.jsp");
             return;
         }
 
         try {
-            // 4. Crear cabecera del Movimiento
-            MovimientoInventario mov = new MovimientoInventario();
-            mov.setCodigoMovimiento("E-" + System.currentTimeMillis());
-            mov.setTipoMovimiento("ENTRADA_REPOSICION");
-            mov.setDocumentoReferencia(documento);
-            mov.setObservacion(observacion != null ? observacion : "");
-            mov.setIdUsuario(usr.getIdUsuario());
+            MovimientoInventario movimiento = new MovimientoInventario();
 
-            // 5. Llenar los detalles
+            movimiento.setCodigoMovimiento("E-" + System.currentTimeMillis());
+            movimiento.setTipoMovimiento("ENTRADA_REPOSICION");
+            movimiento.setDocumentoReferencia(documento.trim());
+            movimiento.setObservacion(
+                    observacion != null ? observacion.trim() : ""
+            );
+            movimiento.setIdUsuario(usr.getIdUsuario());
+
             List<DetalleMovimiento> listaDetalles = new ArrayList<>();
+
             for (int i = 0; i < idProductos.length; i++) {
-                int idProd = Integer.parseInt(idProductos[i]);
-                int cant = Integer.parseInt(cantidades[i]);
 
-                DetalleMovimiento det = new DetalleMovimiento();
-                det.setIdProducto(idProd);
-                det.setCantidad(cant);
-                listaDetalles.add(det);
+                if (idProductos[i] == null || idProductos[i].trim().isEmpty()
+                        || cantidades[i] == null || cantidades[i].trim().isEmpty()) {
+
+                    throw new IllegalArgumentException(
+                            "Todos los productos deben tener una cantidad válida."
+                    );
+                }
+
+                int idProducto = Integer.parseInt(idProductos[i].trim());
+                int cantidad = Integer.parseInt(cantidades[i].trim());
+
+                if (idProducto <= 0 || cantidad <= 0) {
+                    throw new IllegalArgumentException(
+                            "El identificador y la cantidad deben ser mayores a cero."
+                    );
+                }
+
+                DetalleMovimiento detalle = new DetalleMovimiento();
+                detalle.setIdProducto(idProducto);
+                detalle.setCantidad(cantidad);
+
+                listaDetalles.add(detalle);
             }
 
-            // 6. Ejecutar el Servicio Transaccional (AC-02)
-            boolean exito = inventarioService.registrarEntradaTransaccional(mov, listaDetalles);
+            boolean exito = inventarioService.registrarEntradaTransaccional(
+                    movimiento,
+                    listaDetalles
+            );
 
-            // 7. Enviar la respuesta a la vista
             if (exito) {
-                request.getSession().setAttribute("mensajeExito", "Entrada de productos registrada exitosamente. Movimiento N°: " + mov.getCodigoMovimiento());
+                session.setAttribute(
+                        "mensajeExito",
+                        "Entrada de productos registrada exitosamente. Movimiento N°: "
+                        + movimiento.getCodigoMovimiento()
+                );
             } else {
-                request.getSession().setAttribute("mensajeError", "Error al procesar el ingreso. No se aplicaron cambios en el inventario.");
+                session.setAttribute(
+                        "mensajeError",
+                        "No se pudo registrar la entrada. No se aplicaron cambios en el inventario."
+                );
             }
 
-        } catch (Exception e) {
-            request.getSession().setAttribute("mensajeError", "Error inesperado: " + e.getMessage());
-            e.printStackTrace();
+        } catch (ExcepcionNegocio ex) {
+
+            session.setAttribute("mensajeError", obtenerMensajeNegocio(ex));
+
+        } catch (NumberFormatException ex) {
+
+            session.setAttribute(
+                    "mensajeError",
+                    "Los identificadores y las cantidades deben ser números enteros válidos."
+            );
+
+        } catch (IllegalArgumentException ex) {
+
+            session.setAttribute("mensajeError", ex.getMessage());
+
+        } catch (Exception ex) {
+
+            session.setAttribute(
+                    "mensajeError",
+                    "Ocurrió un error inesperado al procesar la entrada."
+            );
+
+            getServletContext().log("Error inesperado en EntradaServlet", ex);
         }
 
         response.sendRedirect("registrarEntrada.jsp");
+    }
+
+    private void cargarProductos(HttpServletRequest request) {
+
+        dao.ProductoDAO productoDAO = new dao.ProductoDAO();
+        List<Producto> listaProductos = productoDAO.listarTodosActivos();
+
+        request.setAttribute("listaProductos", listaProductos);
+    }
+
+    private String obtenerMensajeNegocio(ExcepcionNegocio ex) {
+
+        switch (ex.getTipo()) {
+            case DATOS_INVALIDOS:
+                return ex.getMessage();
+
+            case PRODUCTO_NO_ENCONTRADO:
+                return "Uno de los productos seleccionados no existe o no está disponible.";
+
+            case STOCK_INSUFICIENTE:
+                return ex.getMessage();
+
+            case OPERACION_NO_PERMITIDA:
+                return ex.getMessage();
+
+            default:
+                return "No se pudo completar la entrada por una regla de negocio.";
+        }
     }
 }

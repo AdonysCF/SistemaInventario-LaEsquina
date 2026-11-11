@@ -23,22 +23,24 @@ public class InventarioService {
 
     /**
      * Registra una entrada de inventario de manera transaccional.
-     * Todos los productos se registran o ninguno se registra.
      */
     public boolean registrarEntradaTransaccional(
             MovimientoInventario mov,
-            List<DetalleMovimiento> detalles) {
+            List<DetalleMovimiento> detalles) throws ExcepcionNegocio {
 
         if (mov == null || detalles == null || detalles.isEmpty()) {
-            return false;
+            throw new ExcepcionNegocio(
+                    ExcepcionNegocio.Tipo.DATOS_INVALIDOS,
+                    "Debe proporcionar los datos del movimiento y al menos un producto.");
         }
 
-        // Validar los detalles antes de iniciar la transacción.
         for (DetalleMovimiento det : detalles) {
             if (det == null
                     || det.getIdProducto() <= 0
                     || det.getCantidad() <= 0) {
-                return false;
+                throw new ExcepcionNegocio(
+                        ExcepcionNegocio.Tipo.DATOS_INVALIDOS,
+                        "Los productos y las cantidades de la entrada deben ser válidos.");
             }
         }
 
@@ -56,7 +58,7 @@ public class InventarioService {
                     return false;
                 }
 
-                // 2. Procesar cada producto ingresado.
+                // 2. Procesar los productos ingresados.
                 for (DetalleMovimiento det : detalles) {
 
                     det.setIdMovimiento(idMovimiento);
@@ -66,8 +68,10 @@ public class InventarioService {
                                     conn, det.getIdProducto());
 
                     if (producto == null) {
-                        conn.rollback();
-                        return false;
+                        throw new ExcepcionNegocio(
+                                ExcepcionNegocio.Tipo.PRODUCTO_NO_ENCONTRADO,
+                                "El producto con ID " + det.getIdProducto()
+                                + " no existe o no está disponible.");
                     }
 
                     int stockAnterior = producto.getStockActual();
@@ -77,14 +81,16 @@ public class InventarioService {
                         nuevoStock = Math.addExact(
                                 stockAnterior, det.getCantidad());
                     } catch (ArithmeticException ex) {
-                        conn.rollback();
-                        return false;
+                        throw new ExcepcionNegocio(
+                                ExcepcionNegocio.Tipo.DATOS_INVALIDOS,
+                                "La cantidad ingresada supera el límite permitido.",
+                                ex);
                     }
 
                     det.setStockAnterior(stockAnterior);
                     det.setStockResultante(nuevoStock);
 
-                    // 3. Registrar el detalle en el Kardex.
+                    // 3. Registrar el detalle en Kardex.
                     boolean detalleRegistrado =
                             movimientoDAO.insertarDetalleMovTransaccional(
                                     conn, det);
@@ -94,7 +100,7 @@ public class InventarioService {
                         return false;
                     }
 
-                    // 4. Actualizar el stock y su estado de alerta.
+                    // 4. Actualizar el stock y el estado de alerta.
                     String nuevaAlerta = evaluarEstadoAlerta(
                             nuevoStock, producto.getStockMinimo());
 
@@ -111,12 +117,17 @@ public class InventarioService {
                     }
                 }
 
-                // 5. Confirmar todos los cambios.
                 conn.commit();
                 return true;
 
+            } catch (ExcepcionNegocio ex) {
+
+                rollbackSeguro(conn);
+                throw ex;
+
             } catch (Exception ex) {
-                conn.rollback();
+
+                rollbackSeguro(conn);
 
                 LOGGER.log(
                         Level.SEVERE,
@@ -127,6 +138,7 @@ public class InventarioService {
             }
 
         } catch (SQLException ex) {
+
             LOGGER.log(
                     Level.SEVERE,
                     "Error de conexión al registrar la entrada.",
@@ -138,24 +150,23 @@ public class InventarioService {
 
     /**
      * Registra un ajuste positivo o negativo de inventario.
-     *
-     * AJUSTE_POSITIVO: aumenta el stock.
-     * AJUSTE_NEGATIVO: disminuye el stock.
-     *
-     * El proceso es transaccional: si falla un producto,
-     * se revierten todos los cambios del ajuste.
      */
-    public String registrarAjuste(MovimientoInventario mov) {
+    public String registrarAjuste(
+            MovimientoInventario mov) throws ExcepcionNegocio {
 
         // 1. Validaciones generales.
         if (mov == null) {
-            return "ERROR: No se recibió información del ajuste.";
+            throw new ExcepcionNegocio(
+                    ExcepcionNegocio.Tipo.DATOS_INVALIDOS,
+                    "No se recibió información del ajuste.");
         }
 
         List<DetalleMovimiento> detalles = mov.getDetalles();
 
         if (detalles == null || detalles.isEmpty()) {
-            return "ERROR: Debe agregar al menos un producto al ajuste.";
+            throw new ExcepcionNegocio(
+                    ExcepcionNegocio.Tipo.DATOS_INVALIDOS,
+                    "Debe agregar al menos un producto al ajuste.");
         }
 
         String tipoAjuste = mov.getTipoMovimiento();
@@ -164,22 +175,30 @@ public class InventarioService {
         boolean esNegativo = "AJUSTE_NEGATIVO".equals(tipoAjuste);
 
         if (!esPositivo && !esNegativo) {
-            return "ERROR: El tipo de ajuste no es válido.";
+            throw new ExcepcionNegocio(
+                    ExcepcionNegocio.Tipo.DATOS_INVALIDOS,
+                    "El tipo de ajuste no es válido.");
         }
 
         // 2. Validar los productos y cantidades.
         for (DetalleMovimiento det : detalles) {
 
             if (det == null) {
-                return "ERROR: Existe un detalle de producto inválido.";
+                throw new ExcepcionNegocio(
+                        ExcepcionNegocio.Tipo.DATOS_INVALIDOS,
+                        "Existe un detalle de producto inválido.");
             }
 
             if (det.getIdProducto() <= 0) {
-                return "ERROR: Seleccione un producto válido.";
+                throw new ExcepcionNegocio(
+                        ExcepcionNegocio.Tipo.DATOS_INVALIDOS,
+                        "Seleccione un producto válido.");
             }
 
             if (det.getCantidad() <= 0) {
-                return "ERROR: Todas las cantidades deben ser mayores a cero.";
+                throw new ExcepcionNegocio(
+                        ExcepcionNegocio.Tipo.DATOS_INVALIDOS,
+                        "Todas las cantidades deben ser mayores a cero.");
             }
         }
 
@@ -204,22 +223,20 @@ public class InventarioService {
 
                     det.setIdMovimiento(idMovimiento);
 
-                    // Obtener el producto bloqueando su fila
-                    // para evitar modificaciones simultáneas.
                     Producto producto =
                             productoDAO.obtenerPorIdTransaccional(
                                     conn, det.getIdProducto());
 
                     if (producto == null) {
-                        conn.rollback();
-                        return "ERROR: Uno de los productos no existe.";
+                        throw new ExcepcionNegocio(
+                                ExcepcionNegocio.Tipo.PRODUCTO_NO_ENCONTRADO,
+                                "El producto con ID " + det.getIdProducto()
+                                + " no existe o no está disponible.");
                     }
 
                     int stockAnterior = producto.getStockActual();
                     int cantidadAjuste = det.getCantidad();
 
-                    // CORRECCIÓN CRÍTICA:
-                    // El tipo de ajuste determina si se suma o se resta.
                     int variacion = esPositivo
                             ? cantidadAjuste
                             : -cantidadAjuste;
@@ -230,26 +247,24 @@ public class InventarioService {
                         nuevoStock = Math.addExact(
                                 stockAnterior, variacion);
                     } catch (ArithmeticException ex) {
-                        conn.rollback();
-                        return "ERROR: La cantidad del ajuste supera el límite permitido.";
+                        throw new ExcepcionNegocio(
+                                ExcepcionNegocio.Tipo.DATOS_INVALIDOS,
+                                "La cantidad del ajuste supera el límite permitido.",
+                                ex);
                     }
 
-                    // Impedir que el inventario termine con stock negativo.
                     if (nuevoStock < 0) {
-                        conn.rollback();
-
-                        return "ERROR: El ajuste dejaría el stock en negativo "
-                                + "para el producto: " + producto.getNombre()
+                        throw new ExcepcionNegocio(
+                                ExcepcionNegocio.Tipo.STOCK_INSUFICIENTE,
+                                "El ajuste dejaría el stock en negativo para el producto: "
+                                + producto.getNombre()
                                 + ". Stock actual: " + stockAnterior
-                                + ", cantidad a descontar: " + cantidadAjuste;
+                                + ", cantidad a descontar: " + cantidadAjuste + ".");
                     }
 
                     // 4. Preparar los datos del Kardex.
                     det.setStockAnterior(stockAnterior);
                     det.setStockResultante(nuevoStock);
-
-                    // La cantidad se guarda como valor positivo.
-                    // La naturaleza del movimiento indica si fue entrada o salida.
                     det.setCantidad(cantidadAjuste);
 
                     // 5. Registrar el detalle del movimiento.
@@ -285,10 +300,14 @@ public class InventarioService {
                 return "EXITO: Ajuste registrado correctamente. "
                         + "El inventario ha sido actualizado.";
 
+            } catch (ExcepcionNegocio ex) {
+
+                rollbackSeguro(conn);
+                throw ex;
+
             } catch (Exception ex) {
 
-                // Si ocurre cualquier error, revertir toda la operación.
-                conn.rollback();
+                rollbackSeguro(conn);
 
                 LOGGER.log(
                         Level.SEVERE,
@@ -324,5 +343,21 @@ public class InventarioService {
         }
 
         return "DISPONIBLE";
+    }
+
+    /**
+     * Revierte la transacción sin ocultar la excepción original.
+     */
+    private void rollbackSeguro(Connection conn) {
+        if (conn != null) {
+            try {
+                conn.rollback();
+            } catch (SQLException ex) {
+                LOGGER.log(
+                        Level.SEVERE,
+                        "No se pudo revertir la transacción.",
+                        ex);
+            }
+        }
     }
 }
