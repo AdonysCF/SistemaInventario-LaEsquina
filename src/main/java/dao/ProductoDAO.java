@@ -7,18 +7,19 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import modelo.Producto;
+import service.ExcepcionPersistencia;
 
 public class ProductoDAO {
 
-    /**
-     * Devuelve todos los productos que están activos en el catálogo.
-     * Usado en ConsultaServlet y ProductoServlet (acción "listar").
-     */
+    private static final Logger LOGGER =
+            Logger.getLogger(ProductoDAO.class.getName());
+
     public List<Producto> listarTodosActivos() {
 
         List<Producto> lista = new ArrayList<>();
-
         String sql = "SELECT * FROM producto WHERE activo = 1";
 
         try (Connection con = ConexionDB.getConnection();
@@ -26,7 +27,6 @@ public class ProductoDAO {
              ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
-
                 Producto p = new Producto();
 
                 p.setIdProducto(rs.getInt("id_producto"));
@@ -42,22 +42,23 @@ public class ProductoDAO {
                 lista.add(p);
             }
 
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+            return lista;
 
-        return lista;
+        } catch (SQLException ex) {
+            LOGGER.log(Level.SEVERE,
+                    "Error al listar los productos activos.", ex);
+            throw new ExcepcionPersistencia(
+                    "No se pudieron consultar los productos.", ex);
+        }
     }
 
-    /**
-     * Busca productos por coincidencia de SKU o de nombre.
-     * Usado en ConsultaServlet para el buscador rápido de la tienda.
-     */
     public List<Producto> buscarPorCriterio(String filtro) {
 
         List<Producto> lista = new ArrayList<>();
 
-        String sql = "SELECT * FROM producto WHERE activo = 1 AND (codigo_sku LIKE ? OR nombre LIKE ?)";
+        String sql = "SELECT * FROM producto "
+                + "WHERE activo = 1 "
+                + "AND (codigo_sku LIKE ? OR nombre LIKE ?)";
 
         try (Connection con = ConexionDB.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -70,7 +71,6 @@ public class ProductoDAO {
             try (ResultSet rs = ps.executeQuery()) {
 
                 while (rs.next()) {
-
                     Producto p = new Producto();
 
                     p.setIdProducto(rs.getInt("id_producto"));
@@ -87,21 +87,22 @@ public class ProductoDAO {
                 }
             }
 
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+            return lista;
 
-        return lista;
+        } catch (SQLException ex) {
+            LOGGER.log(Level.SEVERE,
+                    "Error al buscar productos por criterio.", ex);
+            throw new ExcepcionPersistencia(
+                    "No se pudieron buscar los productos.", ex);
+        }
     }
 
-    /**
-     * Inserta un nuevo producto en el catálogo.
-     * El stock inicia en 0 por RN-02.
-     * Usado en ProductoServlet.
-     */
     public boolean agregarProducto(Producto p) {
 
-        String sql = "INSERT INTO producto (codigo_sku, nombre, id_categoria, precio_unitario, stock_minimo, ruta_imagen, estado_alerta) VALUES (?, ?, ?, ?, ?, ?, 'AGOTADO')";
+        String sql = "INSERT INTO producto "
+                + "(codigo_sku, nombre, id_categoria, precio_unitario, "
+                + "stock_minimo, ruta_imagen, estado_alerta) "
+                + "VALUES (?, ?, ?, ?, ?, ?, 'AGOTADO')";
 
         try (Connection con = ConexionDB.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -113,28 +114,25 @@ public class ProductoDAO {
             ps.setInt(5, p.getStockMinimo());
             ps.setString(6, p.getRutaImagen());
 
-            int filasAfectadas = ps.executeUpdate();
+            return ps.executeUpdate() > 0;
 
-            return filasAfectadas > 0;
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
+        } catch (SQLException ex) {
+            LOGGER.log(Level.SEVERE,
+                    "Error al registrar el producto.", ex);
+            throw new ExcepcionPersistencia(
+                    "No se pudo registrar el producto.", ex);
         }
     }
 
-    /**
-     * Actualiza solo los datos editables (SKU, Precio y Stock Mínimo)
-     * de un producto.
-     * Usado en ProductoServlet al editar desde el modal.
-     */
     public boolean actualizarProductoParcial(
             int idProducto,
             String nuevoSku,
             java.math.BigDecimal nuevoPrecio,
             int nuevoStockMinimo) {
 
-        String sql = "UPDATE producto SET codigo_sku = ?, precio_unitario = ?, stock_minimo = ? WHERE id_producto = ?";
+        String sql = "UPDATE producto "
+                + "SET codigo_sku = ?, precio_unitario = ?, stock_minimo = ? "
+                + "WHERE id_producto = ?";
 
         try (Connection con = ConexionDB.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -144,33 +142,25 @@ public class ProductoDAO {
             ps.setInt(3, nuevoStockMinimo);
             ps.setInt(4, idProducto);
 
-            int filasAfectadas = ps.executeUpdate();
+            return ps.executeUpdate() > 0;
 
-            return filasAfectadas > 0;
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
+        } catch (SQLException ex) {
+            LOGGER.log(Level.SEVERE,
+                    "Error al actualizar el producto con ID "
+                    + idProducto + ".", ex);
+            throw new ExcepcionPersistencia(
+                    "No se pudo actualizar el producto.", ex);
         }
     }
 
-    /**
-     * Obtiene un producto bloqueando la fila (ROWLOCK, UPDLOCK)
-     * para controlar la concurrencia.
-     *
-     * Usado internamente por los servicios transaccionales.
-     *
-     * IMPORTANTE:
-     * No cierra la conexión recibida porque pertenece al servicio
-     * que administra la transacción.
-     */
     public Producto obtenerPorIdTransaccional(
             Connection conn,
             int idProducto) throws SQLException {
 
         Producto p = null;
 
-        String sql = "SELECT * FROM producto WITH (UPDLOCK, ROWLOCK) WHERE id_producto = ?";
+        String sql = "SELECT * FROM producto "
+                + "WITH (UPDLOCK, ROWLOCK) WHERE id_producto = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
 
@@ -179,7 +169,6 @@ public class ProductoDAO {
             try (ResultSet rs = ps.executeQuery()) {
 
                 if (rs.next()) {
-
                     p = new Producto();
 
                     p.setIdProducto(rs.getInt("id_producto"));
@@ -197,21 +186,15 @@ public class ProductoDAO {
         return p;
     }
 
-    /**
-     * Actualiza el stock y la alerta de un producto
-     * usando la conexión transaccional.
-     *
-     * IMPORTANTE:
-     * No cierra la conexión recibida porque pertenece al servicio
-     * que administra la transacción.
-     */
     public boolean actualizarStockTransaccional(
             Connection conn,
             int idProducto,
             int nuevoStock,
             String estadoAlerta) throws SQLException {
 
-        String sql = "UPDATE producto SET stock_actual = ?, estado_alerta = ? WHERE id_producto = ?";
+        String sql = "UPDATE producto "
+                + "SET stock_actual = ?, estado_alerta = ? "
+                + "WHERE id_producto = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
 
@@ -219,9 +202,7 @@ public class ProductoDAO {
             ps.setString(2, estadoAlerta);
             ps.setInt(3, idProducto);
 
-            int filasAfectadas = ps.executeUpdate();
-
-            return filasAfectadas > 0;
+            return ps.executeUpdate() > 0;
         }
     }
 }

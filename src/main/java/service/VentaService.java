@@ -8,6 +8,8 @@ import dao.VentaDAO;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import modelo.DetalleMovimiento;
 import modelo.DetalleVenta;
 import modelo.MovimientoInventario;
@@ -16,10 +18,14 @@ import modelo.Venta;
 
 public class VentaService {
 
+    private static final Logger LOGGER =
+            Logger.getLogger(VentaService.class.getName());
+
     private final VentaDAO ventaDAO = new VentaDAO();
     private final ProductoDAO productoDAO = new ProductoDAO();
     private final MovimientoDAO movimientoDAO = new MovimientoDAO();
-    private final InventarioService inventarioService = new InventarioService();
+    private final InventarioService inventarioService =
+            new InventarioService();
 
     public boolean registrarVentaTransaccional(
             Venta venta,
@@ -54,15 +60,14 @@ public class VentaService {
             conn = ConexionDB.getConnection();
             conn.setAutoCommit(false);
 
-            // 1. Registrar la cabecera de venta.
-            int idVenta = ventaDAO.insertarCabeceraTransaccional(conn, venta);
+            int idVenta = ventaDAO.insertarCabeceraTransaccional(
+                    conn, venta);
 
             if (idVenta <= 0) {
-                conn.rollback();
-                return false;
+                throw new ExcepcionPersistencia(
+                        "No se pudo generar la cabecera de la venta.");
             }
 
-            // 2. Registrar la cabecera del movimiento en Kardex.
             MovimientoInventario mov = new MovimientoInventario();
             mov.setCodigoMovimiento("S-" + System.currentTimeMillis());
             mov.setTipoMovimiento("SALIDA_VENTA");
@@ -72,21 +77,21 @@ public class VentaService {
             mov.setIdVentaOrigen(idVenta);
 
             int idMovimiento =
-                    movimientoDAO.insertarMovimientoTransaccional(conn, mov);
+                    movimientoDAO.insertarMovimientoTransaccional(
+                            conn, mov);
 
             if (idMovimiento <= 0) {
-                conn.rollback();
-                return false;
+                throw new ExcepcionPersistencia(
+                        "No se pudo registrar el movimiento de salida.");
             }
 
-            // 3. Procesar los productos vendidos.
             for (DetalleVenta det : detalles) {
 
                 det.setIdVenta(idVenta);
 
                 if (!ventaDAO.insertarDetalleTransaccional(conn, det)) {
-                    conn.rollback();
-                    return false;
+                    throw new ExcepcionPersistencia(
+                            "No se pudo registrar el detalle de la venta.");
                 }
 
                 Producto producto = productoDAO.obtenerPorIdTransaccional(
@@ -113,9 +118,9 @@ public class VentaService {
                 int stockAnterior = producto.getStockActual();
                 int nuevoStock = stockAnterior - det.getCantidad();
 
-                // Utilizar el método centralizado de InventarioService.
-                String nuevaAlerta = inventarioService.evaluarEstadoAlerta(
-                        nuevoStock, producto.getStockMinimo());
+                String nuevaAlerta =
+                        inventarioService.evaluarEstadoAlerta(
+                                nuevoStock, producto.getStockMinimo());
 
                 if (!productoDAO.actualizarStockTransaccional(
                         conn,
@@ -123,11 +128,11 @@ public class VentaService {
                         nuevoStock,
                         nuevaAlerta)) {
 
-                    conn.rollback();
-                    return false;
+                    throw new ExcepcionPersistencia(
+                            "No se pudo actualizar el stock del producto "
+                            + producto.getNombre() + ".");
                 }
 
-                // 4. Registrar el detalle en Kardex.
                 DetalleMovimiento detMov = new DetalleMovimiento();
                 detMov.setIdMovimiento(idMovimiento);
                 detMov.setIdProducto(producto.getIdProducto());
@@ -137,8 +142,9 @@ public class VentaService {
 
                 if (!movimientoDAO.insertarDetalleMovTransaccional(
                         conn, detMov)) {
-                    conn.rollback();
-                    return false;
+
+                    throw new ExcepcionPersistencia(
+                            "No se pudo registrar el detalle del movimiento en Kardex.");
                 }
             }
 
@@ -147,34 +153,58 @@ public class VentaService {
 
         } catch (ExcepcionNegocio ex) {
 
-            rollbackSeguro(conn);
+            rollbackSeguro(conn, ex);
             throw ex;
 
-        } catch (Exception ex) {
+        } catch (ExcepcionPersistencia ex) {
 
-            rollbackSeguro(conn);
-            ex.printStackTrace();
-            return false;
+            rollbackSeguro(conn, ex);
+            LOGGER.log(Level.SEVERE,
+                    "Error de persistencia al registrar la venta.", ex);
+            throw ex;
+
+        } catch (SQLException ex) {
+
+            rollbackSeguro(conn, ex);
+            LOGGER.log(Level.SEVERE,
+                    "Error SQL al registrar la venta.", ex);
+
+            throw new ExcepcionPersistencia(
+                    "No se pudo completar la venta por un error en la base de datos.",
+                    ex);
+
+        } catch (RuntimeException ex) {
+
+            rollbackSeguro(conn, ex);
+            LOGGER.log(Level.SEVERE,
+                    "Error inesperado al registrar la venta.", ex);
+
+            throw ex;
 
         } finally {
 
             if (conn != null) {
                 try {
                     conn.setAutoCommit(true);
-                    ConexionDB.cerrar(conn);
                 } catch (SQLException ex) {
-                    ex.printStackTrace();
+                    LOGGER.log(Level.WARNING,
+                            "No se pudo restaurar el autocommit de la conexión.",
+                            ex);
                 }
+
+                ConexionDB.cerrar(conn);
             }
         }
     }
 
-    private void rollbackSeguro(Connection conn) {
+    private void rollbackSeguro(Connection conn, Throwable causaOriginal) {
         if (conn != null) {
             try {
                 conn.rollback();
             } catch (SQLException ex) {
-                ex.printStackTrace();
+                LOGGER.log(Level.SEVERE,
+                        "No se pudo revertir la transacción de venta.", ex);
+                causaOriginal.addSuppressed(ex);
             }
         }
     }

@@ -49,16 +49,15 @@ public class InventarioService {
             conn.setAutoCommit(false);
 
             try {
-                // 1. Registrar la cabecera del movimiento.
                 int idMovimiento =
-                        movimientoDAO.insertarMovimientoTransaccional(conn, mov);
+                        movimientoDAO.insertarMovimientoTransaccional(
+                                conn, mov);
 
                 if (idMovimiento <= 0) {
-                    conn.rollback();
-                    return false;
+                    throw new ExcepcionPersistencia(
+                            "No se pudo registrar la cabecera de la entrada.");
                 }
 
-                // 2. Procesar los productos ingresados.
                 for (DetalleMovimiento det : detalles) {
 
                     det.setIdMovimiento(idMovimiento);
@@ -90,30 +89,23 @@ public class InventarioService {
                     det.setStockAnterior(stockAnterior);
                     det.setStockResultante(nuevoStock);
 
-                    // 3. Registrar el detalle en Kardex.
-                    boolean detalleRegistrado =
-                            movimientoDAO.insertarDetalleMovTransaccional(
-                                    conn, det);
-
-                    if (!detalleRegistrado) {
-                        conn.rollback();
-                        return false;
+                    if (!movimientoDAO.insertarDetalleMovTransaccional(
+                            conn, det)) {
+                        throw new ExcepcionPersistencia(
+                                "No se pudo registrar el detalle de la entrada.");
                     }
 
-                    // 4. Actualizar el stock y el estado de alerta.
                     String nuevaAlerta = evaluarEstadoAlerta(
                             nuevoStock, producto.getStockMinimo());
 
-                    boolean stockActualizado =
-                            productoDAO.actualizarStockTransaccional(
-                                    conn,
-                                    producto.getIdProducto(),
-                                    nuevoStock,
-                                    nuevaAlerta);
-
-                    if (!stockActualizado) {
-                        conn.rollback();
-                        return false;
+                    if (!productoDAO.actualizarStockTransaccional(
+                            conn,
+                            producto.getIdProducto(),
+                            nuevoStock,
+                            nuevaAlerta)) {
+                        throw new ExcepcionPersistencia(
+                                "No se pudo actualizar el stock del producto "
+                                + producto.getNombre() + ".");
                     }
                 }
 
@@ -121,30 +113,32 @@ public class InventarioService {
                 return true;
 
             } catch (ExcepcionNegocio ex) {
-
-                rollbackSeguro(conn);
+                rollbackSeguro(conn, ex);
                 throw ex;
 
-            } catch (Exception ex) {
+            } catch (ExcepcionPersistencia ex) {
+                rollbackSeguro(conn, ex);
+                throw ex;
 
-                rollbackSeguro(conn);
-
-                LOGGER.log(
-                        Level.SEVERE,
-                        "Error al registrar la entrada de inventario.",
+            } catch (SQLException ex) {
+                rollbackSeguro(conn, ex);
+                throw new ExcepcionPersistencia(
+                        "No se pudo registrar la entrada por un error en la base de datos.",
                         ex);
 
-                return false;
+            } catch (RuntimeException ex) {
+                rollbackSeguro(conn, ex);
+                throw ex;
             }
 
         } catch (SQLException ex) {
-
-            LOGGER.log(
-                    Level.SEVERE,
-                    "Error de conexión al registrar la entrada.",
+            LOGGER.log(Level.SEVERE,
+                    "Error al obtener la conexión para registrar la entrada.",
                     ex);
 
-            return false;
+            throw new ExcepcionPersistencia(
+                    "No se pudo establecer conexión con la base de datos.",
+                    ex);
         }
     }
 
@@ -154,7 +148,6 @@ public class InventarioService {
     public String registrarAjuste(
             MovimientoInventario mov) throws ExcepcionNegocio {
 
-        // 1. Validaciones generales.
         if (mov == null) {
             throw new ExcepcionNegocio(
                     ExcepcionNegocio.Tipo.DATOS_INVALIDOS,
@@ -180,7 +173,6 @@ public class InventarioService {
                     "El tipo de ajuste no es válido.");
         }
 
-        // 2. Validar los productos y cantidades.
         for (DetalleMovimiento det : detalles) {
 
             if (det == null) {
@@ -202,23 +194,20 @@ public class InventarioService {
             }
         }
 
-        // 3. Ejecutar la operación dentro de una transacción.
         try (Connection conn = ConexionDB.getConnection()) {
 
             conn.setAutoCommit(false);
 
             try {
-                // Registrar la cabecera del ajuste.
                 int idMovimiento =
                         movimientoDAO.insertarMovimientoTransaccional(
                                 conn, mov);
 
                 if (idMovimiento <= 0) {
-                    conn.rollback();
-                    return "ERROR: No se pudo registrar la cabecera del ajuste.";
+                    throw new ExcepcionPersistencia(
+                            "No se pudo registrar la cabecera del ajuste.");
                 }
 
-                // Procesar cada producto del ajuste.
                 for (DetalleMovimiento det : detalles) {
 
                     det.setIdMovimiento(idMovimiento);
@@ -259,81 +248,71 @@ public class InventarioService {
                                 "El ajuste dejaría el stock en negativo para el producto: "
                                 + producto.getNombre()
                                 + ". Stock actual: " + stockAnterior
-                                + ", cantidad a descontar: " + cantidadAjuste + ".");
+                                + ", cantidad a descontar: "
+                                + cantidadAjuste + ".");
                     }
 
-                    // 4. Preparar los datos del Kardex.
                     det.setStockAnterior(stockAnterior);
                     det.setStockResultante(nuevoStock);
                     det.setCantidad(cantidadAjuste);
 
-                    // 5. Registrar el detalle del movimiento.
-                    boolean detalleRegistrado =
-                            movimientoDAO.insertarDetalleMovTransaccional(
-                                    conn, det);
-
-                    if (!detalleRegistrado) {
-                        conn.rollback();
-                        return "ERROR: No se pudo registrar el detalle en el historial.";
+                    if (!movimientoDAO.insertarDetalleMovTransaccional(
+                            conn, det)) {
+                        throw new ExcepcionPersistencia(
+                                "No se pudo registrar el detalle del ajuste en el historial.");
                     }
 
-                    // 6. Actualizar el stock del producto.
                     String nuevaAlerta = evaluarEstadoAlerta(
                             nuevoStock, producto.getStockMinimo());
 
-                    boolean stockActualizado =
-                            productoDAO.actualizarStockTransaccional(
-                                    conn,
-                                    producto.getIdProducto(),
-                                    nuevoStock,
-                                    nuevaAlerta);
-
-                    if (!stockActualizado) {
-                        conn.rollback();
-                        return "ERROR: No se pudo actualizar el stock del producto.";
+                    if (!productoDAO.actualizarStockTransaccional(
+                            conn,
+                            producto.getIdProducto(),
+                            nuevoStock,
+                            nuevaAlerta)) {
+                        throw new ExcepcionPersistencia(
+                                "No se pudo actualizar el stock del producto "
+                                + producto.getNombre() + ".");
                     }
                 }
 
-                // 7. Confirmar todos los cambios.
                 conn.commit();
 
                 return "EXITO: Ajuste registrado correctamente. "
                         + "El inventario ha sido actualizado.";
 
             } catch (ExcepcionNegocio ex) {
-
-                rollbackSeguro(conn);
+                rollbackSeguro(conn, ex);
                 throw ex;
 
-            } catch (Exception ex) {
+            } catch (ExcepcionPersistencia ex) {
+                rollbackSeguro(conn, ex);
+                throw ex;
 
-                rollbackSeguro(conn);
-
-                LOGGER.log(
-                        Level.SEVERE,
-                        "Error al registrar el ajuste de inventario.",
+            } catch (SQLException ex) {
+                rollbackSeguro(conn, ex);
+                throw new ExcepcionPersistencia(
+                        "No se pudo completar el ajuste por un error en la base de datos.",
                         ex);
 
-                return "ERROR: No se pudo completar el ajuste de inventario.";
+            } catch (RuntimeException ex) {
+                rollbackSeguro(conn, ex);
+                throw ex;
             }
 
         } catch (SQLException ex) {
-
-            LOGGER.log(
-                    Level.SEVERE,
-                    "Error de conexión al registrar el ajuste.",
+            LOGGER.log(Level.SEVERE,
+                    "Error al obtener la conexión para registrar el ajuste.",
                     ex);
 
-            return "ERROR: Ocurrió un problema al conectar con la base de datos.";
+            throw new ExcepcionPersistencia(
+                    "No se pudo establecer conexión con la base de datos.",
+                    ex);
         }
     }
 
     /**
-     * Determina el estado de alerta según el stock actual
-     * y el stock mínimo configurado para el producto.
-     *
-     * Este método es público para que otros servicios
-     * puedan reutilizar la misma regla de negocio.
+     * Regla centralizada para determinar el estado de alerta.
      */
     public String evaluarEstadoAlerta(int stockActual, int stockMinimo) {
 
@@ -351,15 +330,16 @@ public class InventarioService {
     /**
      * Revierte la transacción sin ocultar la excepción original.
      */
-    private void rollbackSeguro(Connection conn) {
+    private void rollbackSeguro(Connection conn, Throwable causaOriginal) {
+
         if (conn != null) {
             try {
                 conn.rollback();
             } catch (SQLException ex) {
-                LOGGER.log(
-                        Level.SEVERE,
-                        "No se pudo revertir la transacción.",
+                LOGGER.log(Level.SEVERE,
+                        "No se pudo revertir la transacción de inventario.",
                         ex);
+                causaOriginal.addSuppressed(ex);
             }
         }
     }
