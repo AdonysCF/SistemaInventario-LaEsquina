@@ -19,6 +19,7 @@ public class VentaService {
     private final VentaDAO ventaDAO = new VentaDAO();
     private final ProductoDAO productoDAO = new ProductoDAO();
     private final MovimientoDAO movimientoDAO = new MovimientoDAO();
+    private final InventarioService inventarioService = new InventarioService();
 
     public boolean registrarVentaTransaccional(
             Venta venta,
@@ -112,7 +113,8 @@ public class VentaService {
                 int stockAnterior = producto.getStockActual();
                 int nuevoStock = stockAnterior - det.getCantidad();
 
-                String nuevaAlerta = evaluarEstadoAlerta(
+                // Utilizar el método centralizado de InventarioService.
+                String nuevaAlerta = inventarioService.evaluarEstadoAlerta(
                         nuevoStock, producto.getStockMinimo());
 
                 if (!productoDAO.actualizarStockTransaccional(
@@ -175,17 +177,5 @@ public class VentaService {
                 ex.printStackTrace();
             }
         }
-    }
-
-    private String evaluarEstadoAlerta(int stockActual, int stockMinimo) {
-        if (stockActual == 0) {
-            return "AGOTADO";
-        }
-
-        if (stockActual <= stockMinimo) {
-            return "PROXIMO_A_AGOTARSE";
-        }
-
-        return "DISPONIBLE";
     }
 }

@@ -331,8 +331,11 @@ public class InventarioService {
     /**
      * Determina el estado de alerta según el stock actual
      * y el stock mínimo configurado para el producto.
+     *
+     * Este método es público para que otros servicios
+     * puedan reutilizar la misma regla de negocio.
      */
-    private String evaluarEstadoAlerta(int stockActual, int stockMinimo) {
+    public String evaluarEstadoAlerta(int stockActual, int stockMinimo) {
 
         if (stockActual == 0) {
             return "AGOTADO";
