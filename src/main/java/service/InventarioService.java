@@ -4,118 +4,168 @@ import dao.ConexionDB;
 import dao.MovimientoDAO;
 import dao.ProductoDAO;
 import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.List;
 import modelo.DetalleMovimiento;
 import modelo.MovimientoInventario;
 import modelo.Producto;
 
 public class InventarioService {
-    
+
     private MovimientoDAO movimientoDAO = new MovimientoDAO();
     private ProductoDAO productoDAO = new ProductoDAO();
 
-    public boolean registrarEntrada(MovimientoInventario mov) {
+    public boolean registrarEntradaTransaccional(MovimientoInventario mov, List<DetalleMovimiento> detalles) {
         Connection conn = null;
         try {
             conn = ConexionDB.getConnection();
-            conn.setAutoCommit(false); // ¡INICIA TRANSACCIÓN ACID!
+            // 1. INICIAR TRANSACCIÓN ATÓMICA
+            conn.setAutoCommit(false);
 
-            // 1. Insertar cabecera del movimiento
-            int idMovimiento = movimientoDAO.insertarMovimiento(conn, mov);
-
-            // 2. Procesar cada detalle recibido
-            for (DetalleMovimiento det : mov.getDetalles()) {
-                // Leer stock actual bloqueando la fila (si tuvieras FOR UPDATE)
-                Producto prod = productoDAO.obtenerPorId(conn, det.getIdProducto());
-                
-                int stockAnterior = prod.getStockActual();
-                int nuevoStock = stockAnterior + det.getCantidad();
-                
-                // Actualizar el detalle para el Kardex
-                det.setStockAnterior(stockAnterior);
-                det.setStockResultante(nuevoStock);
-                
-                // Insertar detalle en Kardex
-                movimientoDAO.insertarDetalleMov(conn, idMovimiento, det);
-                
-                // Evaluar regla RN-04 (Alerta de stock)
-                String alerta = "DISPONIBLE";
-                if (nuevoStock == 0) alerta = "AGOTADO";
-                else if (nuevoStock <= prod.getStockMinimo()) alerta = "PROXIMO_A_AGOTARSE";
-                
-                // Actualizar stock real en la tabla producto
-                productoDAO.actualizarStock(conn, det.getIdProducto(), nuevoStock, alerta);
+            // 2. Insertar Cabecera del Movimiento en Kardex
+            int idMovimiento = movimientoDAO.insertarMovimientoTransaccional(conn, mov);
+            if (idMovimiento <= 0) {
+                conn.rollback();
+                return false;
             }
 
-            conn.commit(); // CONFIRMA TRANSACCIÓN
+            // 3. Procesar cada producto ingresado
+            for (DetalleMovimiento det : detalles) {
+                det.setIdMovimiento(idMovimiento);
+                
+                // Obtener stock actual para calcular el resultante
+                Producto p = productoDAO.obtenerPorIdTransaccional(conn, det.getIdProducto());
+                if (p == null) {
+                    conn.rollback();
+                    return false;
+                }
+
+                int stockAnterior = p.getStockActual();
+                int nuevoStock = stockAnterior + det.getCantidad();
+                
+                det.setStockAnterior(stockAnterior);
+                det.setStockResultante(nuevoStock);
+
+                // A. Insertar detalle en Kardex
+                if (!movimientoDAO.insertarDetalleMovTransaccional(conn, det)) {
+                    conn.rollback();
+                    return false;
+                }
+
+                // B. Actualizar Stock y levantar alertas (RN-04)
+                String nuevaAlerta = evaluarEstadoAlerta(nuevoStock, p.getStockMinimo());
+                if (!productoDAO.actualizarStockTransaccional(conn, p.getIdProducto(), nuevoStock, nuevaAlerta)) {
+                    conn.rollback();
+                    return false;
+                }
+            }
+
+            // 4. CONFIRMAR TRANSACCIÓN
+            conn.commit();
             return true;
 
         } catch (Exception e) {
-            if (conn != null) {
-                try { conn.rollback(); } catch (Exception ex) {} // DESHACE TODO SI HAY ERROR
+            try {
+                if (conn != null) conn.rollback();
+            } catch (SQLException ex) {
+                ex.printStackTrace();
             }
-            System.out.println("Error transaccional en entrada: " + e.getMessage());
+            e.printStackTrace();
             return false;
         } finally {
-            if (conn != null) {
-                try { conn.setAutoCommit(true); conn.close(); } catch (Exception e) {}
+            try {
+                if (conn != null) {
+                    conn.setAutoCommit(true);
+                    ConexionDB.cerrar(conn);
+                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
             }
         }
     }
+
+    private String evaluarEstadoAlerta(int stockActual, int stockMinimo) {
+        if (stockActual == 0) return "AGOTADO";
+        if (stockActual <= stockMinimo) return "PROXIMO_A_AGOTARSE";
+        return "DISPONIBLE";
+    }
     
-    // Método para RF-NEG-04: Ajuste de Inventario
     public String registrarAjuste(MovimientoInventario mov) {
         Connection conn = null;
         try {
             conn = ConexionDB.getConnection();
-            conn.setAutoCommit(false); // Inicia Transacción ACID
+            conn.setAutoCommit(false); // Iniciar transacción ACID[cite: 117.2, 117.5]
 
-            // 1. Insertar cabecera del ajuste (AJUSTE_POSITIVO o AJUSTE_NEGATIVO)
-            int idMovimiento = movimientoDAO.insertarMovimiento(conn, mov);
+            // 1. Registrar cabecera del ajuste
+            int idMov = movimientoDAO.insertarMovimientoTransaccional(conn, mov);
+            if (idMov <= 0) {
+                conn.rollback();
+                return "Error al registrar la cabecera del ajuste.";
+            }
 
-            // 2. Procesar el detalle del ajuste
+            // 2. Procesar cada detalle (producto afectado por el ajuste)
             for (DetalleMovimiento det : mov.getDetalles()) {
-                Producto prod = productoDAO.obtenerPorId(conn, det.getIdProducto());
-                int stockActual = prod.getStockActual();
-                int nuevoStock;
-
-                if (mov.getTipoMovimiento().equals("AJUSTE_NEGATIVO")) {
-                    if (stockActual < det.getCantidad()) {
-                        conn.rollback();
-                        return "ERROR: No puede ajustar negativamente más stock del que existe. Quedan " + stockActual + " unidades.";
-                    }
-                    nuevoStock = stockActual - det.getCantidad();
-                } else {
-                    nuevoStock = stockActual + det.getCantidad();
+                det.setIdMovimiento(idMov);
+                
+                // Obtener producto bloqueando la fila
+                Producto p = productoDAO.obtenerPorIdTransaccional(conn, det.getIdProducto());
+                if (p == null) {
+                    conn.rollback();
+                    return "Error: Uno de los productos no existe.";
                 }
 
-                // Configurar saldos para el Kardex
-                det.setStockAnterior(stockActual);
+                int stockAnterior = p.getStockActual();
+                int cantidadAjuste = det.getCantidad(); // En ajuste, la cantidad puede ser positiva o negativa
+                int nuevoStock = stockAnterior + cantidadAjuste;
+
+                // Validación de stock negativo (RN-02)
+                if (nuevoStock < 0) {
+                    conn.rollback();
+                    return "El ajuste dejaría el stock en negativo para el producto: " + p.getNombre();
+                }
+
+                // Llenar datos faltantes del detalle
+                det.setStockAnterior(stockAnterior);
                 det.setStockResultante(nuevoStock);
+                // Si la cantidad es negativa (salida), para el kardex guardamos el valor absoluto
+                det.setCantidad(Math.abs(cantidadAjuste)); 
 
-                // Insertar detalle en Kardex
-                movimientoDAO.insertarDetalleMov(conn, idMovimiento, det);
+                // A. Insertar detalle en Kardex
+                if (!movimientoDAO.insertarDetalleMovTransaccional(conn, det)) {
+                    conn.rollback();
+                    return "Error al registrar el detalle en el historial.";
+                }
 
-                // Evaluar RN-04 (Alerta de stock)
-                String alerta = "DISPONIBLE";
-                if (nuevoStock == 0) alerta = "AGOTADO";
-                else if (nuevoStock <= prod.getStockMinimo()) alerta = "PROXIMO_A_AGOTARSE";
-
-                // Actualizar stock en la tabla producto
-                productoDAO.actualizarStock(conn, det.getIdProducto(), nuevoStock, alerta);
+                // B. Actualizar stock del producto (RN-04)
+                String nuevaAlerta = evaluarEstadoAlerta(nuevoStock, p.getStockMinimo());
+                if (!productoDAO.actualizarStockTransaccional(conn, p.getIdProducto(), nuevoStock, nuevaAlerta)) {
+                    conn.rollback();
+                    return "Error al actualizar el stock del producto.";
+                }
             }
 
-            conn.commit(); // CONFIRMA TRANSACCIÓN
-            return "EXITO:" + mov.getCodigoMovimiento();
+            // 3. Confirmar todo[cite: 117.2, 117.5]
+            conn.commit();
+            return "OK";
 
         } catch (Exception e) {
-            if (conn != null) {
-                try { conn.rollback(); } catch (Exception ex) {}
+            try {
+                if (conn != null) conn.rollback(); //[cite: 117.2, 117.5]
+            } catch (SQLException ex) {
+                ex.printStackTrace();
             }
-            return "ERROR: Fallo transaccional - " + e.getMessage();
+            e.printStackTrace();
+            return "Error inesperado: " + e.getMessage();
         } finally {
-            if (conn != null) {
-                try { conn.setAutoCommit(true); conn.close(); } catch (Exception e) {}
+            try {
+                if (conn != null) {
+                    conn.setAutoCommit(true);
+                    ConexionDB.cerrar(conn);
+                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
             }
         }
     }
+    
 }
