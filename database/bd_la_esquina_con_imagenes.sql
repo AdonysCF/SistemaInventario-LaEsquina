@@ -1,4 +1,4 @@
-SET NOCOUNT ON;
+﻿SET NOCOUNT ON;
 GO
 
 IF DB_ID('bd_la_esquina') IS NULL
@@ -59,6 +59,7 @@ CREATE TABLE dbo.producto (
     stock_actual INT NOT NULL CONSTRAINT df_producto_stock DEFAULT (0),
     stock_minimo INT NOT NULL CONSTRAINT df_producto_minimo DEFAULT (5),
     estado_alerta VARCHAR(30) NOT NULL CONSTRAINT df_producto_alerta DEFAULT ('DISPONIBLE'),
+    ruta_imagen VARCHAR(255) NULL,
     activo BIT NOT NULL CONSTRAINT df_producto_activo DEFAULT (1),
     fecha_actualizacion DATETIME NOT NULL CONSTRAINT df_producto_fecha DEFAULT (GETDATE()),
     CONSTRAINT pk_producto PRIMARY KEY CLUSTERED (id_producto),
@@ -164,60 +165,57 @@ CREATE TABLE dbo.detalle_movimiento (
 GO
 
 
--- INSERCIÓN DE DATOS DE PRUEBA 
-
-
--- 1. Datos de prueba para TABLA: usuario (2 registros)
+-- 1. Datos de prueba para TABLA: usuario 
 INSERT INTO dbo.usuario (username, password_hash, nombre_completo, rol) VALUES
 ('gerente.esquina', '$2a$10$hashGerenteBCryptEjemplo123456', 'Carlos Mendoza (Gerente)', 'GERENTE'),
 ('cajero.turno1',   '$2a$10$hashCajero1BCryptEjemplo123456', 'María Torres (Cajera)',    'CAJERO');
 
--- 2. Datos de prueba para TABLA: categoria (3 registros)
+-- 2. Datos de prueba para TABLA: categoria 
 INSERT INTO dbo.categoria (nombre, descripcion) VALUES
 ('Abarrotes', 'Arroz, azúcar, aceites y productos básicos de despensa'),
 ('Lácteos',   'Leche evaporada, yogures y derivados lácteos'),
 ('Bebidas',   'Agua mineral, gaseosas y jugos embotellados');
 
--- 3. Datos de prueba para TABLA: producto (3 registros en los 3 estados del semáforo RN-04)
-INSERT INTO dbo.producto (codigo_sku, nombre, id_categoria, precio_unitario, stock_actual, stock_minimo, estado_alerta) VALUES
-('ABA-0001', 'Arroz Extra Costeño Bolsa 750g',       1, 4.20, 45, 10, 'DISPONIBLE'),
-('LAC-0001', 'Leche Evaporada Gloria Azul Lata 390g', 2, 4.50,  8, 10, 'PROXIMO_A_AGOTARSE'),
-('BEB-0001', 'Agua Mineral San Mateo Sin Gas 600ml',  3, 2.00,  0, 12, 'AGOTADO');
+-- 3. Datos de prueba para TABLA: producto 
+INSERT INTO dbo.producto
+    (codigo_sku, nombre, id_categoria, precio_unitario, stock_actual,
+     stock_minimo, estado_alerta, ruta_imagen)
+VALUES
+('ABA-0001', 'Arroz Extra Costeño Bolsa 750g',        1, 4.20, 45, 10, 'DISPONIBLE',
+ 'img/productos/arrozCosteño750g.png'),
+('LAC-0001', 'Leche Evaporada Gloria Azul Lata 390g', 2, 4.50,  8, 10, 'PROXIMO_A_AGOTARSE',
+ 'img/productos/gloriaLeche390g.png'),
+('BEB-0001', 'Agua Mineral San Mateo Sin Gas 600ml',  3, 2.00,  0, 12, 'AGOTADO',
+ 'img/productos/aguaSanMateo600ml.png');
 
--- 4. Datos de prueba para TABLA: venta (1 registro)
+-- 4. Datos de prueba para TABLA: venta 
 INSERT INTO dbo.venta (numero_ticket, total_venta, estado, id_usuario) VALUES
 ('V-00001', 12.60, 'CONFIRMADA', 2);
 
--- 5. Datos de prueba para TABLA: detalle_venta (1 registro)
+-- 5. Datos de prueba para TABLA: detalle_venta 
 INSERT INTO dbo.detalle_venta (id_venta, id_producto, cantidad, precio_unitario, subtotal) VALUES
 (1, 1, 3, 4.20, 12.60);
 
--- 6. Datos de prueba para TABLA: movimiento_inventario (2 registros: 1 entrada y 1 salida)
+-- 6. Datos de prueba para TABLA: movimiento_inventario 
 INSERT INTO dbo.movimiento_inventario (codigo_movimiento, tipo_movimiento, documento_referencia, observacion, id_usuario, id_venta_origen) VALUES
 ('E-00001', 'ENTRADA_REPOSICION', 'Guía N.° 001-004582', 'Abastecimiento inicial de arroz', 1, NULL),
 ('S-00001', 'SALIDA_VENTA',       'Ticket V-00001',      'Salida automática por venta en caja', 2, 1);
 
--- 7. Datos de prueba para TABLA: detalle_movimiento (2 registros)
+-- 7. Datos de prueba para TABLA: detalle_movimiento 
 INSERT INTO dbo.detalle_movimiento (id_movimiento, id_producto, cantidad, stock_anterior, stock_resultante) VALUES
 (1, 1, 48,  0, 48),
 (2, 1,  3, 48, 45);
 GO
 
 
--- CONSULTAS DE CADA TABLA
 
 SELECT '1. TABLA: usuario' AS [Indicador_Tabla], id_usuario, username, nombre_completo, rol, activo FROM dbo.usuario;
 SELECT '2. TABLA: categoria' AS [Indicador_Tabla], id_categoria, nombre, descripcion, activo FROM dbo.categoria;
-SELECT '3. TABLA: producto' AS [Indicador_Tabla], id_producto, codigo_sku, nombre, precio_unitario, stock_actual, stock_minimo, estado_alerta FROM dbo.producto;
+SELECT '3. TABLA: producto' AS [Indicador_Tabla], id_producto, codigo_sku, nombre, precio_unitario, stock_actual, stock_minimo, estado_alerta, ruta_imagen FROM dbo.producto;
 SELECT '4. TABLA: venta' AS [Indicador_Tabla], id_venta, numero_ticket, fecha_hora, total_venta, estado, id_usuario FROM dbo.venta;
 SELECT '5. TABLA: detalle_venta' AS [Indicador_Tabla], id_detalle_venta, id_venta, id_producto, cantidad, precio_unitario, subtotal FROM dbo.detalle_venta;
 SELECT '6. TABLA: movimiento_inventario' AS [Indicador_Tabla], id_movimiento, codigo_movimiento, tipo_movimiento, documento_referencia, id_usuario, id_venta_origen FROM dbo.movimiento_inventario;
 SELECT '7. TABLA: detalle_movimiento' AS [Indicador_Tabla], id_detalle_mov, id_movimiento, id_producto, cantidad, stock_anterior, stock_resultante FROM dbo.detalle_movimiento;
 GO
 
-DELETE FROM detalle_movimiento;
-DELETE FROM movimiento_inventario;
-DELETE FROM detalle_venta;
-DELETE FROM venta;
-DELETE FROM usuario;
-GO
+select * from usuario

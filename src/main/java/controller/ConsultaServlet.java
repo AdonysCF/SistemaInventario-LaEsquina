@@ -33,12 +33,12 @@ public class ConsultaServlet extends HttpServlet {
         if (buscar != null && !buscar.trim().isEmpty()) {
             resultados = productoDAO.buscarPorCriterio(buscar.trim());
         } else {
-            // Si no hay búsqueda, mostramos todo el catálogo activo (opcional)
+            // Si no hay búsqueda, mostramos todo el catálogo activo 
             resultados = productoDAO.listarTodosActivos();
         }
 
         request.setAttribute("listaResultados", resultados);
-        request.setAttribute("busquedaAnterior", buscar); // Para mantener el texto en la caja de búsqueda
+        request.setAttribute("busquedaAnterior", buscar);
         
         request.getRequestDispatcher("consultarProductos.jsp").forward(request, response);
     }

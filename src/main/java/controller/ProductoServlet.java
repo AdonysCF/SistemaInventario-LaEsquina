@@ -29,10 +29,8 @@ public class ProductoServlet extends HttpServlet {
             case "listar":
                 List<Producto> lista = productoDAO.listarTodosActivos();
                 request.setAttribute("listaProductos", lista);
-                // Redirige a la vista del catálogo
                 request.getRequestDispatcher("catalogoProductos.jsp").forward(request, response);
                 break;
-            // Aquí agregarás "eliminar" si es necesario
             default:
                 response.sendRedirect("panelGerente.jsp");
         }
@@ -45,7 +43,6 @@ public class ProductoServlet extends HttpServlet {
         String accion = request.getParameter("accion");
 
         if (accion != null && accion.equalsIgnoreCase("agregar")) {
-            // 1. Recibir los datos del formulario Modal
             String sku = request.getParameter("txtSku");
             String nombre = request.getParameter("txtNombre");
             int idCategoria = Integer.parseInt(request.getParameter("selCategoria"));
@@ -53,7 +50,6 @@ public class ProductoServlet extends HttpServlet {
             int stockMinimo = Integer.parseInt(request.getParameter("numStockMin"));
             String rutaImagen = request.getParameter("txtImagen");
 
-            // 2. Llenar el objeto Producto
             Producto p = new Producto();
             p.setCodigoSku(sku);
             p.setNombre(nombre);
@@ -62,11 +58,11 @@ public class ProductoServlet extends HttpServlet {
             p.setStockMinimo(stockMinimo);
             p.setRutaImagen(rutaImagen);
 
-            // 3. Guardar en la Base de Datos
+            // Guardar en la Base de Datos
             ProductoDAO dao = new ProductoDAO();
             boolean exito = dao.agregarProducto(p);
 
-            // 4. Redirigir de vuelta al catálogo con un mensaje
+            //  Redirigir de vuelta al catálogo con un mensaje
             if (exito) {
                 request.getSession().setAttribute("mensajeExito", "Producto " + sku + " registrado correctamente con stock inicial 0.");
             } else {
@@ -78,7 +74,7 @@ public class ProductoServlet extends HttpServlet {
 
         } else if ("editar".equalsIgnoreCase(accion)) {
             try {
-                // 1. Recibir y validar los datos del formulario Modal de edición
+                //  Recibir y validar los datos del formulario Modal de edición
                 String idStr = request.getParameter("idProducto");
                 String sku = request.getParameter("editSku");
                 String precioStr = request.getParameter("editPrecio");
@@ -95,11 +91,11 @@ public class ProductoServlet extends HttpServlet {
                 java.math.BigDecimal precio = new java.math.BigDecimal(precioStr);
                 int stockMinimo = Integer.parseInt(stockMinStr);
 
-                // 2. Ejecutar la actualización en la Base de Datos (Modelo)
+                // Ejecutar la actualización en la Base de Datos 
                 ProductoDAO dao = new ProductoDAO();
                 boolean exito = dao.actualizarProductoParcial(idProducto, sku, precio, stockMinimo);
 
-                // 3. Establecer mensaje de éxito o error
+                // Establecer mensaje de éxito o error
                 if (exito) {
                     request.getSession().setAttribute("mensajeExito", "El producto se actualizó correctamente.");
                 } else {
@@ -116,8 +112,6 @@ public class ProductoServlet extends HttpServlet {
                 e.printStackTrace();
             }
 
-            // 4. LA CLAVE DE LA SOLUCIÓN: La redirección incondicional
-            // Esto debe ejecutarse SIEMPRE al final de la acción, haya habido error o no.
             response.sendRedirect("ProductoServlet?accion=listar");
         }
     }

@@ -8,10 +8,8 @@ public class GeneradorUsuarios {
     public static void main(String[] args) {
         UsuarioDAO dao = new UsuarioDAO();
 
-        // 1. Crear el Gerente
         Usuario gerente = new Usuario();
-        gerente.setUsername("carlos.mendoza"); // Usuario para login
-        // La contraseña "admin123" se encripta aquí mismo
+        gerente.setUsername("carlos.mendoza"); 
         String hashGerente = BCrypt.hashpw("admin123", BCrypt.gensalt(10));
         gerente.setPasswordHash(hashGerente);
         gerente.setNombreCompleto("Carlos Mendoza");
@@ -20,10 +18,9 @@ public class GeneradorUsuarios {
         boolean ok1 = dao.registrarUsuario(gerente);
         System.out.println("Gerente creado: " + ok1);
 
-        // 2. Crear el Cajero
+  
         Usuario cajero = new Usuario();
-        cajero.setUsername("lucia.paredes"); // Usuario para login
-        // La contraseña "caja123" se encripta aquí mismo
+        cajero.setUsername("lucia.paredes");
         String hashCajero = BCrypt.hashpw("caja123", BCrypt.gensalt(10));
         cajero.setPasswordHash(hashCajero);
         cajero.setNombreCompleto("Lucía Paredes");

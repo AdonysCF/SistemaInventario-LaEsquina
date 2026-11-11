@@ -24,20 +24,16 @@ public class AuthController extends HttpServlet {
 
         if ("salir".equals(accion)) {
 
-            // Obtener la sesión actual sin crear una nueva.
             HttpSession session = request.getSession(false);
 
-            // Destruir la sesión si existe.
             if (session != null) {
                 session.invalidate();
             }
 
-            // Regresar al login.
             response.sendRedirect("index.jsp");
 
         } else {
 
-            // Si ingresa por GET sin acción, regresar al login.
             response.sendRedirect("index.jsp");
         }
     }
@@ -56,17 +52,12 @@ public class AuthController extends HttpServlet {
 
         if (usuarioLogueado != null) {
 
-            // Obtener o crear la sesión actual.
             HttpSession session = request.getSession(true);
 
-            // Regenerar el identificador de sesión.
-            // Protege contra ataques de fijación de sesión.
             request.changeSessionId();
 
-            // Guardar los datos del usuario autenticado.
             session.setAttribute("usuarioSesion", usuarioLogueado);
 
-            // Redirigir según el rol del usuario.
             if ("GERENTE".equals(usuarioLogueado.getRol())) {
 
                 response.sendRedirect("panelGerente.jsp");

@@ -10,12 +10,7 @@ import modelo.Venta;
 
 public class VentaDAO {
 
-    // (Aquí puedes mantener tus otros métodos si los tienes)
 
-    /**
-     * Inserta la cabecera de la venta usando una conexión transaccional existente.
-     * Devuelve el ID generado.
-     */
     public int insertarCabeceraTransaccional(Connection conn, Venta venta) throws SQLException {
         int idGenerado = 0;
         String sql = "INSERT INTO venta (numero_ticket, total_venta, id_usuario, estado) VALUES (?, ?, ?, 'CONFIRMADA')";

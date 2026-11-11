@@ -21,9 +21,9 @@ public class InventarioService {
     private final MovimientoDAO movimientoDAO = new MovimientoDAO();
     private final ProductoDAO productoDAO = new ProductoDAO();
 
-    /**
-     * Registra una entrada de inventario de manera transaccional.
-     */
+ 
+     // Registra una entrada de inventario de manera transaccional.
+   
     public boolean registrarEntradaTransaccional(
             MovimientoInventario mov,
             List<DetalleMovimiento> detalles) throws ExcepcionNegocio {
@@ -142,9 +142,9 @@ public class InventarioService {
         }
     }
 
-    /**
-     * Registra un ajuste positivo o negativo de inventario.
-     */
+
+     //Registra un ajuste positivo o negativo de inventario.
+
     public String registrarAjuste(
             MovimientoInventario mov) throws ExcepcionNegocio {
 

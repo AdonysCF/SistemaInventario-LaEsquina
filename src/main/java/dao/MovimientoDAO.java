@@ -10,11 +10,10 @@ import modelo.MovimientoInventario;
 
 public class MovimientoDAO {
 
-    // (Aquí puedes mantener tus otros métodos)
 
-    /**
-     * Inserta la cabecera del movimiento en el Kardex y devuelve el ID generado.
-     */
+
+    //Inserta la cabecera del movimiento en el Kardex y devuelve el ID generado.
+
     public int insertarMovimientoTransaccional(Connection conn, MovimientoInventario mov) throws SQLException {
         int idGenerado = 0;
         String sql = "INSERT INTO movimiento_inventario (codigo_movimiento, tipo_movimiento, documento_referencia, observacion, id_usuario, id_venta_origen) VALUES (?, ?, ?, ?, ?, ?)";
