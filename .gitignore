@@ -1,0 +1,7 @@
+# Archivos compilados de Maven
+target/
+*.jar
+*.war
+
+# Configuraciones locales de NetBeans que no deben subirse
+nbproject/private/
