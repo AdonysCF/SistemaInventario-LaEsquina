@@ -19,14 +19,12 @@ public class ConexionDB {
             config.setUsername("sa"); 
             config.setPassword("Chavodelmocho123"); 
             
-            // Driver de SQL Server
             config.setDriverClassName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
 
-            // Configuración de Rendimiento 
-            config.setMaximumPoolSize(20);      // Límite máximo de conexiones a BD
-            config.setMinimumIdle(5);           // Conexiones en espera
-            config.setIdleTimeout(30000);       // Tiempo antes de cerrar conexión inactiva
-            config.setConnectionTimeout(10000); // Tiempo máximo de espera (10s)
+            config.setMaximumPoolSize(20);     
+            config.setMinimumIdle(5);          
+            config.setIdleTimeout(30000);       
+            config.setConnectionTimeout(10000); 
             config.setPoolName("LaEsquinaHikariPool");
 
             dataSource = new HikariDataSource(config);
@@ -39,14 +37,12 @@ public class ConexionDB {
 
     
      //Entrega una conexión activa del pool.
- 
     public static Connection getConnection() throws SQLException {
         return dataSource.getConnection();
     }
     
  
      // Devuelve la conexión al pool de HikariCP.
- 
     public static void cerrar(Connection conn) {
         if (conn != null) {
             try {

@@ -165,10 +165,6 @@ CREATE TABLE dbo.detalle_movimiento (
 GO
 
 
--- 1. Datos de prueba para TABLA: usuario 
-INSERT INTO dbo.usuario (username, password_hash, nombre_completo, rol) VALUES
-('gerente.esquina', '$2a$10$hashGerenteBCryptEjemplo123456', 'Carlos Mendoza (Gerente)', 'GERENTE'),
-('cajero.turno1',   '$2a$10$hashCajero1BCryptEjemplo123456', 'María Torres (Cajera)',    'CAJERO');
 
 -- 2. Datos de prueba para TABLA: categoria 
 INSERT INTO dbo.categoria (nombre, descripcion) VALUES
@@ -208,7 +204,6 @@ INSERT INTO dbo.detalle_movimiento (id_movimiento, id_producto, cantidad, stock_
 GO
 
 
-
 SELECT '1. TABLA: usuario' AS [Indicador_Tabla], id_usuario, username, nombre_completo, rol, activo FROM dbo.usuario;
 SELECT '2. TABLA: categoria' AS [Indicador_Tabla], id_categoria, nombre, descripcion, activo FROM dbo.categoria;
 SELECT '3. TABLA: producto' AS [Indicador_Tabla], id_producto, codigo_sku, nombre, precio_unitario, stock_actual, stock_minimo, estado_alerta, ruta_imagen FROM dbo.producto;
@@ -218,4 +213,3 @@ SELECT '6. TABLA: movimiento_inventario' AS [Indicador_Tabla], id_movimiento, co
 SELECT '7. TABLA: detalle_movimiento' AS [Indicador_Tabla], id_detalle_mov, id_movimiento, id_producto, cantidad, stock_anterior, stock_resultante FROM dbo.detalle_movimiento;
 GO
 
-select * from usuario
