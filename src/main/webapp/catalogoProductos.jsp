@@ -222,17 +222,32 @@
                                     </div>
                                 </div>
                                 <div class="col-md-6">
+
                                     <div class="form-floating">
-                                        <select class="form-select" id="selCategoria" name="selCategoria" required>
+
+                                        <select class="form-select"
+                                                id="selCategoria"
+                                                name="selCategoria"
+                                                required>
+
                                             <option value="">Seleccione...</option>
-                                            <!-- En un escenario real, deberías cargar estas opciones desde CategoriaDAO -->
-                                            <option value="1">Abarrotes</option>
-                                            <option value="2">Lácteos y Huevos</option>
-                                            <option value="3">Bebidas</option>
-                                            <option value="4">Limpieza del Hogar</option>
+
+                                            <c:forEach var="categoria" items="${listaCategorias}">
+
+                                                <option value="${categoria.idCategoria}">
+                                                    <c:out value="${categoria.nombre}"/>
+                                                </option>
+
+                                            </c:forEach>
+
                                         </select>
-                                        <label for="selCategoria">Categoría</label>
+
+                                        <label for="selCategoria">
+                                            Categoria
+                                        </label>
+
                                     </div>
+
                                 </div>
                                 <div class="col-12">
                                     <div class="form-floating">
@@ -272,70 +287,70 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- Modal Editar Producto -->
-    <div class="modal fade" id="modalEditarProducto" tabindex="-1" aria-labelledby="modalEditarProductoLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header bg-navy text-white">
-                    <h5 class="modal-title fw-bold" id="modalEditarProductoLabel"><i class="bi bi-pencil-square me-2"></i>Editar Artículo</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal fade" id="modalEditarProducto" tabindex="-1" aria-labelledby="modalEditarProductoLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header bg-navy text-white">
+                        <h5 class="modal-title fw-bold" id="modalEditarProductoLabel"><i class="bi bi-pencil-square me-2"></i>Editar Artículo</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <!-- El formulario envía los datos por POST a ProductoServlet con accion=editar -->
+                    <form action="ProductoServlet" method="POST">
+                        <input type="hidden" name="accion" value="editar">
+                        <input type="hidden" name="idProducto" id="editIdProducto">
+
+                        <div class="modal-body p-4">
+                            <div class="mb-3">
+                                <label class="form-label text-muted fw-bold small text-uppercase">Artículo seleccionado</label>
+                                <div id="editNombreProducto" class="fs-5 text-navy fw-bold">Nombre del Producto</div>
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="editSku" name="editSku" placeholder=" " required maxlength="30">
+                                        <label for="editSku">Código SKU</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="number" step="0.01" class="form-control" id="editPrecio" name="editPrecio" placeholder=" " required min="0.10">
+                                        <label for="editPrecio">Precio Unitario (S/)</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-12">
+                                    <div class="form-floating">
+                                        <input type="number" class="form-control" id="editStockMin" name="editStockMin" placeholder=" " required min="1">
+                                        <label for="editStockMin">Stock Mínimo (Alerta)</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer bg-light">
+                            <button type="button" class="btn btn-outline-secondary fw-bold" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary fw-bold px-4"><i class="bi bi-save me-2"></i>Guardar Cambios</button>
+                        </div>
+                    </form>
                 </div>
-                <!-- El formulario envía los datos por POST a ProductoServlet con accion=editar -->
-                <form action="ProductoServlet" method="POST">
-                    <input type="hidden" name="accion" value="editar">
-                    <input type="hidden" name="idProducto" id="editIdProducto">
-                    
-                    <div class="modal-body p-4">
-                        <div class="mb-3">
-                            <label class="form-label text-muted fw-bold small text-uppercase">Artículo seleccionado</label>
-                            <div id="editNombreProducto" class="fs-5 text-navy fw-bold">Nombre del Producto</div>
-                        </div>
-                        
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <div class="form-floating">
-                                    <input type="text" class="form-control" id="editSku" name="editSku" placeholder=" " required maxlength="30">
-                                    <label for="editSku">Código SKU</label>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-floating">
-                                    <input type="number" step="0.01" class="form-control" id="editPrecio" name="editPrecio" placeholder=" " required min="0.10">
-                                    <label for="editPrecio">Precio Unitario (S/)</label>
-                                </div>
-                            </div>
-                            <div class="col-md-12">
-                                <div class="form-floating">
-                                    <input type="number" class="form-control" id="editStockMin" name="editStockMin" placeholder=" " required min="1">
-                                    <label for="editStockMin">Stock Mínimo (Alerta)</label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer bg-light">
-                        <button type="button" class="btn btn-outline-secondary fw-bold" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary fw-bold px-4"><i class="bi bi-save me-2"></i>Guardar Cambios</button>
-                    </div>
-                </form>
             </div>
         </div>
-    </div>
 
-    <!-- Script para llenar los datos en el modal de edición -->
-    <script>
-        function abrirModalEditar(id, sku, nombre, precio, stockMin) {
-            // Llenar los campos del modal
-            document.getElementById('editIdProducto').value = id;
-            document.getElementById('editNombreProducto').innerText = nombre;
-            document.getElementById('editSku').value = sku;
-            document.getElementById('editPrecio').value = precio;
-            document.getElementById('editStockMin').value = stockMin;
+        <!-- Script para llenar los datos en el modal de edición -->
+        <script>
+            function abrirModalEditar(id, sku, nombre, precio, stockMin) {
+                // Llenar los campos del modal
+                document.getElementById('editIdProducto').value = id;
+                document.getElementById('editNombreProducto').innerText = nombre;
+                document.getElementById('editSku').value = sku;
+                document.getElementById('editPrecio').value = precio;
+                document.getElementById('editStockMin').value = stockMin;
             
-            // Abrir el modal usando Bootstrap
-            var myModal = new bootstrap.Modal(document.getElementById('modalEditarProducto'));
-            myModal.show();
-        }
-    </script>
+                // Abrir el modal usando Bootstrap
+                var myModal = new bootstrap.Modal(document.getElementById('modalEditarProducto'));
+                myModal.show();
+            }
+        </script>
     </body>
 </html>

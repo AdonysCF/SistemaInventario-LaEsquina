@@ -9,10 +9,13 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import modelo.Producto;
+import dao.CategoriaDAO;
+import modelo.Categoria;
 
 @WebServlet(name = "ProductoServlet", urlPatterns = {"/ProductoServlet"})
 public class ProductoServlet extends HttpServlet {
 
+    private final CategoriaDAO categoriaDAO = new CategoriaDAO();
     ProductoDAO productoDAO = new ProductoDAO();
 
     @Override
@@ -28,8 +31,18 @@ public class ProductoServlet extends HttpServlet {
         switch (accion) {
             case "listar":
                 List<Producto> lista = productoDAO.listarTodosActivos();
+
+                List<Categoria> listaCategorias
+                        = categoriaDAO.listarActivas();
+
                 request.setAttribute("listaProductos", lista);
-                request.getRequestDispatcher("catalogoProductos.jsp").forward(request, response);
+
+                request.setAttribute("listaCategorias", listaCategorias);
+
+                request.getRequestDispatcher(
+                        "catalogoProductos.jsp"
+                ).forward(request, response);
+
                 break;
             default:
                 response.sendRedirect("panelGerente.jsp");
