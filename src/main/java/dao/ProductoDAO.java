@@ -205,4 +205,74 @@ public class ProductoDAO {
             return ps.executeUpdate() > 0;
         }
     }
+    
+    
+public boolean existeSku(String sku, int idExcluir) {
+
+    String sql = "SELECT COUNT(*) FROM producto "
+            + "WHERE codigo_sku = ? "
+            + "AND id_producto <> ?";
+
+    try (Connection con = ConexionDB.getConnection();
+         PreparedStatement ps = con.prepareStatement(sql)) {
+
+        ps.setString(1, sku);
+        ps.setInt(2, idExcluir);
+
+        try (ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        }
+
+        return false;
+
+    } catch (SQLException ex) {
+        LOGGER.log(Level.SEVERE,
+                "Error al verificar el código SKU.", ex);
+
+        throw new ExcepcionPersistencia(
+                "No se pudo validar el código SKU.", ex);
+    }
+}
+
+public Producto buscarPorId(int idProducto) {
+
+    String sql = "SELECT * FROM producto WHERE id_producto = ?";
+
+    try (Connection con = ConexionDB.getConnection();
+         PreparedStatement ps = con.prepareStatement(sql)) {
+
+        ps.setInt(1, idProducto);
+
+        try (ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                Producto p = new Producto();
+
+                p.setIdProducto(rs.getInt("id_producto"));
+                p.setCodigoSku(rs.getString("codigo_sku"));
+                p.setNombre(rs.getString("nombre"));
+                p.setIdCategoria(rs.getInt("id_categoria"));
+                p.setPrecioUnitario(rs.getBigDecimal("precio_unitario"));
+                p.setStockActual(rs.getInt("stock_actual"));
+                p.setStockMinimo(rs.getInt("stock_minimo"));
+                p.setEstadoAlerta(rs.getString("estado_alerta"));
+                p.setActivo(rs.getBoolean("activo"));
+                p.setRutaImagen(rs.getString("ruta_imagen"));
+
+                return p;
+            }
+        }
+
+        return null;
+
+    } catch (SQLException ex) {
+        LOGGER.log(Level.SEVERE,
+                "Error al consultar el producto.", ex);
+
+        throw new ExcepcionPersistencia(
+                "No se pudo consultar el producto.", ex);
+    }
+}
+
 }
