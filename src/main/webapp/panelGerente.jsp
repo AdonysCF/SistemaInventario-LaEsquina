@@ -190,6 +190,38 @@
                 </div>
 
 
+                <!-- TARJETA: GESTION DE USUARIOS -->
+                <div class="col-md-6 col-lg-4">
+
+                    <div class="card dashboard-card text-center p-4">
+
+                        <div class="card-body d-flex flex-column align-items-center">
+
+                            <i class="bi bi-people card-icon text-navy"></i>
+
+                            <h5 class="fw-bold text-navy">
+                                Gestion de Usuarios
+                            </h5>
+
+                            <p class="text-muted small mb-4">
+                                Administra las cuentas del personal y sus respectivos roles.
+                            </p>
+
+                            <a href="UsuarioServlet?accion=listar"
+                               class="btn btn-mustard w-100 mt-auto fw-bold">
+
+                                <i class="bi bi-person-gear me-1"></i>
+                                Administrar Usuarios
+
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
                 <!-- Tarjeta: Consultas -->
                 <div class="col-md-6 col-lg-4">
                     <div class="card dashboard-card text-center p-4">

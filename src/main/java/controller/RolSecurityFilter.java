@@ -63,6 +63,8 @@ public class RolSecurityFilter implements Filter {
                     || requestURI.contains("AjusteServlet")
                     || requestURI.contains("CategoriaServlet")
                     || requestURI.contains("gestionarCategorias.jsp")
+                    || requestURI.contains("UsuarioServlet")
+                    || requestURI.contains("gestionarUsuarios.jsp")
                     || requestURI.contains("Reporte")) {
 
                 // Devuelve Error HTTP 403 - Acceso Denegado
