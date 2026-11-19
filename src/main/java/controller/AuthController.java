@@ -1,4 +1,3 @@
-
 package controller;
 
 import jakarta.servlet.ServletException;
@@ -69,14 +68,19 @@ public class AuthController extends HttpServlet {
 
         } else {
 
-            // Credenciales incorrectas.
+            // Error 401: credenciales incorrectas.
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+
             request.setAttribute(
-                    "errorMensaje",
-                    "Usuario o contraseña incorrectos"
+                    "mensajeError",
+                    "El usuario o la contraseña son incorrectos."
             );
 
-            request.getRequestDispatcher("index.jsp")
+            request.getRequestDispatcher("/index.jsp")
                     .forward(request, response);
+
+            return;
         }
+
     }
 }
