@@ -10,6 +10,7 @@
 <c:url var="urlPanel" value="/panelGerente.jsp"/>
 <c:url var="urlHistorial" value="/HistorialVentaServlet"/>
 <c:url var="urlLogo" value="/img/logo.png"/>
+<c:url var="urlAnular" value="/AnulacionVentaServlet"/>
 <fmt:setLocale value="es_PE" scope="page"/>
 <!DOCTYPE html>
 <html lang="es">
@@ -48,6 +49,11 @@
             <h1 class="h2 text-navy mb-0">Detalle de la venta</h1>
             <a class="btn btn-outline-secondary" href="<c:out value='${urlVolver}'/>">Volver al historial</a>
         </div>
+        <c:if test="${not empty mensajeAnulacion}">
+            <div class="alert ${anulacionExitosa ? 'alert-success' : 'alert-danger'}" role="alert">
+                <c:out value="${mensajeAnulacion}"/>
+            </div>
+        </c:if>
         <div class="card card-body border-0 shadow-sm mb-4">
             <dl class="row g-3 mb-0">
                 <div class="col-6 col-md-3">
@@ -100,6 +106,25 @@
                 </tfoot>
             </table>
         </div>
+        <c:if test="${not empty tokenAnulacion}">
+            <details class="card card-body border-0 shadow-sm mt-4">
+                <summary class="fw-bold text-danger">Anular venta</summary>
+                <form action="${urlAnular}" method="post" accept-charset="UTF-8" class="mt-3">
+                    <p>Al confirmar, las cantidades de este ticket volverán al inventario.</p>
+                    <input type="hidden" name="idVenta" value="<c:out value='${venta.idVenta}'/>">
+                    <input type="hidden" name="tokenAnulacion" value="<c:out value='${tokenAnulacion}'/>">
+                    <input type="hidden" name="desde" value="<c:out value='${desde}'/>">
+                    <input type="hidden" name="hasta" value="<c:out value='${hasta}'/>">
+                    <input type="hidden" name="ticket" value="<c:out value='${ticket}'/>">
+                    <input type="hidden" name="responsable" value="<c:out value='${responsable}'/>">
+                    <input type="hidden" name="pagina" value="<c:out value='${pagina}'/>">
+                    <label for="motivo" class="form-label fw-bold">Motivo de la anulación</label>
+                    <textarea id="motivo" name="motivo" class="form-control mb-3"
+                              rows="3" maxlength="250" required></textarea>
+                    <button type="submit" class="btn btn-danger">Confirmar anulación</button>
+                </form>
+            </details>
+        </c:if>
     </main>
 </body>
 </html>

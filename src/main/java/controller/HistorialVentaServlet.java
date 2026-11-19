@@ -54,6 +54,14 @@ public class HistorialVentaServlet extends HttpServlet {
                 } else {
                     request.setAttribute("venta", detalle.venta());
                     request.setAttribute("productos", detalle.productos());
+                    if ("CONFIRMADA".equals(detalle.venta().getEstado()) && !detalle.productos().isEmpty()) {
+                        request.setAttribute("tokenAnulacion", AnulacionVentaServlet.obtenerToken(sesion));
+                    }
+                    var resultado = AnulacionVentaServlet.consumirResultado(sesion, detalle.venta().getIdVenta());
+                    if (resultado != null) {
+                        request.setAttribute("anulacionExitosa", resultado.exito());
+                        request.setAttribute("mensajeAnulacion", resultado.mensaje());
+                    }
                     request.getRequestDispatcher("/detalleVenta.jsp").forward(request, response);
                     return;
                 }

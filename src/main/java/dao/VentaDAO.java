@@ -148,6 +148,60 @@ public class VentaDAO {
         }
     }
 
+    public Optional<VentaParaAnular> bloquearVentaParaAnular(Connection conn, int idVenta)
+            throws SQLException {
+        String sql = """
+                SELECT numero_ticket, estado
+                FROM venta WITH (UPDLOCK, ROWLOCK)
+                WHERE id_venta = ?
+                """;
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, idVenta);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(new VentaParaAnular(
+                            rs.getString("numero_ticket"), rs.getString("estado")));
+                }
+                return Optional.empty();
+            }
+        }
+    }
+
+    public List<CantidadVendida> listarCantidadesVendidas(Connection conn, int idVenta)
+            throws SQLException {
+        String sql = """
+                SELECT id_producto, SUM(CAST(cantidad AS BIGINT)) AS cantidad
+                FROM detalle_venta
+                WHERE id_venta = ?
+                GROUP BY id_producto
+                ORDER BY id_producto
+                """;
+        List<CantidadVendida> cantidades = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, idVenta);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    cantidades.add(new CantidadVendida(rs.getInt("id_producto"), rs.getLong("cantidad")));
+                }
+            }
+        }
+        return cantidades;
+    }
+
+    public boolean marcarAnuladaTransaccional(Connection conn, int idVenta) throws SQLException {
+        String sql = "UPDATE venta SET estado = 'ANULADA' WHERE id_venta = ? AND estado = 'CONFIRMADA'";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, idVenta);
+            return ps.executeUpdate() == 1;
+        }
+    }
+
+    public record VentaParaAnular(String ticket, String estado) {
+    }
+
+    public record CantidadVendida(int idProducto, long cantidad) {
+    }
+
     private static VentaResumen leerResumen(ResultSet rs) throws SQLException {
         return new VentaResumen(rs.getInt("id_venta"), rs.getString("numero_ticket"),
                 rs.getTimestamp("fecha_hora").toLocalDateTime().format(FORMATO_FECHA),
