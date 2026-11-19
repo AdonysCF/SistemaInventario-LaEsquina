@@ -60,6 +60,10 @@ public class KardexRegistro {
         return stockAnterior;
     }
 
+    public long getVariacionStock() {
+        return (long) stockResultante - stockAnterior;
+    }
+
     public int getStockResultante() {
         return stockResultante;
     }

@@ -198,9 +198,18 @@ public class ProductoDAO {
             java.math.BigDecimal nuevoPrecio,
             int nuevoStockMinimo) {
 
-        String sql = "UPDATE producto "
-                + "SET codigo_sku = ?, precio_unitario = ?, stock_minimo = ? "
-                + "WHERE id_producto = ?";
+        String sql = """
+                UPDATE producto
+                SET codigo_sku = ?,
+                    precio_unitario = ?,
+                    stock_minimo = ?,
+                    estado_alerta = CASE
+                        WHEN stock_actual = 0 THEN 'AGOTADO'
+                        WHEN stock_actual <= ? THEN 'PROXIMO_A_AGOTARSE'
+                        ELSE 'DISPONIBLE'
+                    END
+                WHERE id_producto = ?
+                """;
 
         try (Connection con = ConexionDB.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -208,7 +217,8 @@ public class ProductoDAO {
             ps.setString(1, nuevoSku);
             ps.setBigDecimal(2, nuevoPrecio);
             ps.setInt(3, nuevoStockMinimo);
-            ps.setInt(4, idProducto);
+            ps.setInt(4, nuevoStockMinimo);
+            ps.setInt(5, idProducto);
 
             return ps.executeUpdate() > 0;
 

@@ -88,11 +88,12 @@
                                         <th scope="col">Fecha y hora</th>
                                         <th scope="col">Movimiento</th>
                                         <th scope="col">Producto</th>
-                                        <th scope="col" class="text-end">Cantidad</th>
+                                        <th scope="col" class="text-end">Variación (unid.)</th>
                                         <th scope="col" class="text-end">Stock anterior</th>
                                         <th scope="col" class="text-end">Stock resultante</th>
                                         <th scope="col">Responsable</th>
-                                        <th scope="col">Documento / Observación</th>
+                                        <th scope="col">Documento de referencia</th>
+                                        <th scope="col">Motivo / Observación</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -114,19 +115,17 @@
                                                 <c:out value="${fila.producto}"/>
                                                 <small class="d-block text-muted"><c:out value="${fila.sku}"/></small>
                                             </td>
-                                            <td class="text-end"><c:out value="${fila.cantidad}"/></td>
+                                            <td class="text-end text-nowrap fw-bold">
+                                                <c:out value="${fila.variacionStock gt 0 ? '+' : ''}"/><c:out value="${fila.variacionStock}"/>
+                                            </td>
                                             <td class="text-end"><c:out value="${fila.stockAnterior}"/></td>
                                             <td class="text-end"><c:out value="${fila.stockResultante}"/></td>
                                             <td>
                                                 <c:out value="${fila.responsable}"/>
                                                 <small class="d-block text-muted"><c:out value="${fila.usuario}"/></small>
                                             </td>
-                                            <td>
-                                                <c:out value="${fila.documentoReferencia}"/>
-                                                <c:if test="${not empty fila.observacion}">
-                                                    <small class="d-block text-muted"><c:out value="${fila.observacion}"/></small>
-                                                </c:if>
-                                            </td>
+                                            <td><c:out value="${fila.documentoReferencia}"/></td>
+                                            <td><c:out value="${empty fila.observacion ? '—' : fila.observacion}"/></td>
                                         </tr>
                                     </c:forEach>
                                 </tbody>

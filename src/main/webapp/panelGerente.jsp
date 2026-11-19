@@ -266,6 +266,19 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- Tarjeta: Historial de ventas -->
+                <div class="col-md-6 col-lg-6">
+                    <div class="card dashboard-card text-center p-4">
+                        <div class="card-body d-flex flex-column align-items-center">
+                            <i class="bi bi-receipt card-icon text-navy" aria-hidden="true"></i>
+                            <h5 class="fw-bold text-navy">Historial de ventas</h5>
+                            <p class="text-muted small mb-4">Consulta tickets y revisa los productos de cada venta.</p>
+                            <a href="HistorialVentaServlet" class="btn btn-navy w-100 mt-auto"
+                               style="background-color: var(--color-navy); color: white;">Ver ventas</a>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Tarjeta: Entradas -->
                 <div class="col-md-6 col-lg-6">
@@ -296,6 +309,8 @@
                         </div>
                     </div>
                 </div>
+
+                
 
             </div>
         </div>

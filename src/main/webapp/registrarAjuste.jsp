@@ -79,12 +79,21 @@
 
         <div class="container-fluid px-4 py-4">
 
-            <div class="d-flex align-items-center mb-4">
-                <i class="bi bi-sliders fs-2 text-warning me-3"></i>
-                <div>
-                    <h3 class="text-navy fw-bold mb-0">Ajuste de Inventario (Kardex)</h3>
-                    <p class="text-muted mb-0">Sincerar stock por mermas, vencimientos o descuadres físicos (RN-04).</p>
+            <c:url var="urlHistorialAjustes" value="/KardexServlet">
+                <c:param name="tipo" value="AJUSTE"/>
+            </c:url>
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-sliders fs-2 text-warning me-3" aria-hidden="true"></i>
+                    <div>
+                        <h3 class="text-navy fw-bold mb-0">Ajuste de Inventario (Kardex)</h3>
+                        <p class="text-muted mb-0">Sincerar stock por mermas, vencimientos o descuadres físicos (RN-04).</p>
+                    </div>
                 </div>
+                <a href="<c:out value='${urlHistorialAjustes}'/>"
+                   class="btn btn-outline-secondary fw-bold">
+                    <i class="bi bi-clock-history me-1" aria-hidden="true"></i> Ver historial de ajustes
+                </a>
             </div>
 
             <c:if test="${not empty mensajeExito}">
