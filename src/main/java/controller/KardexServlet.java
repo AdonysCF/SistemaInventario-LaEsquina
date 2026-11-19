@@ -61,7 +61,7 @@ public class KardexServlet extends HttpServlet {
             request.setAttribute("errorKardex", "No se pudo cargar el historial. Intente nuevamente.");
         }
 
-        request.getRequestDispatcher("/WEB-INF/kardex.jsp").forward(request, response);
+        request.getRequestDispatcher("/kardex.jsp").forward(request, response);
     }
 
     private static String parametro(HttpServletRequest request, String nombre) {
