@@ -97,6 +97,74 @@ public class ProductoDAO {
         }
     }
 
+    public List<Producto> consultarExistencias(String buscar, String estado) {
+        List<Producto> resultados = new ArrayList<>();
+
+        // Se calcula el estado con los valores actuales del producto (RN-04).
+        String sql = """
+                WITH existencias AS (
+                    SELECT id_producto, codigo_sku, nombre, id_categoria,
+                           precio_unitario, stock_actual, stock_minimo, ruta_imagen,
+                           CASE
+                               WHEN stock_actual = 0 THEN 'AGOTADO'
+                               WHEN stock_actual <= stock_minimo THEN 'PROXIMO_A_AGOTARSE'
+                               ELSE 'DISPONIBLE'
+                           END AS estado_calculado
+                    FROM producto
+                    WHERE activo = 1
+                )
+                SELECT id_producto, codigo_sku, nombre, id_categoria,
+                       precio_unitario, stock_actual, stock_minimo, ruta_imagen,
+                       estado_calculado
+                FROM existencias
+                WHERE 1 = 1
+                """;
+
+        if (!buscar.isEmpty()) {
+            sql += " AND (codigo_sku LIKE ? OR nombre LIKE ?)";
+        }
+        if (!estado.isEmpty()) {
+            sql += " AND estado_calculado = ?";
+        }
+        sql += " ORDER BY nombre, codigo_sku";
+
+        try (Connection con = ConexionDB.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            int indice = 1;
+            if (!buscar.isEmpty()) {
+                String patron = "%" + buscar + "%";
+                ps.setString(indice++, patron);
+                ps.setString(indice++, patron);
+            }
+            if (!estado.isEmpty()) {
+                ps.setString(indice, estado);
+            }
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Producto p = new Producto();
+                    p.setIdProducto(rs.getInt("id_producto"));
+                    p.setCodigoSku(rs.getString("codigo_sku"));
+                    p.setNombre(rs.getString("nombre"));
+                    p.setIdCategoria(rs.getInt("id_categoria"));
+                    p.setPrecioUnitario(rs.getBigDecimal("precio_unitario"));
+                    p.setStockActual(rs.getInt("stock_actual"));
+                    p.setStockMinimo(rs.getInt("stock_minimo"));
+                    p.setRutaImagen(rs.getString("ruta_imagen"));
+                    p.setEstadoAlerta(rs.getString("estado_calculado"));
+                    p.setActivo(true);
+                    resultados.add(p);
+                }
+            }
+
+            return resultados;
+        } catch (SQLException ex) {
+            LOGGER.log(Level.SEVERE, "Error al consultar existencias.", ex);
+            throw new ExcepcionPersistencia(
+                    "No se pudieron consultar las existencias.", ex);
+        }
+    }
+
     public boolean agregarProducto(Producto p) {
 
         String sql = "INSERT INTO producto "
