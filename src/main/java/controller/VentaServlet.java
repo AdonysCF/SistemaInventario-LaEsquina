@@ -26,6 +26,8 @@ public class VentaServlet extends HttpServlet {
 
     private final VentaService ventaService = new VentaService();
 
+    private static final String CLAVE_AVISO = "avisoRegistroVenta";
+
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -38,6 +40,14 @@ public class VentaServlet extends HttpServlet {
         }
 
         cargarProductos(request);
+        Aviso aviso;
+        synchronized (session) {
+            aviso = (Aviso) session.getAttribute(CLAVE_AVISO);
+            session.removeAttribute(CLAVE_AVISO);
+        }
+        if (aviso != null) {
+            request.setAttribute(aviso.exito() ? "mensajeExito" : "mensajeError", aviso.mensaje());
+        }
         request.getRequestDispatcher("registrarVenta.jsp").forward(request, response);
     }
 
@@ -68,20 +78,17 @@ public class VentaServlet extends HttpServlet {
         if (idProductos == null || idProductos.length == 0
                 || cantidades == null || precios == null) {
 
-            session.setAttribute("mensajeError", "El carrito de ventas está vacío.");
-            response.sendRedirect("registrarVenta.jsp");
+            guardarAviso(session, false, "El carrito de ventas está vacío.");
+            response.sendRedirect(request.getContextPath() + "/VentaServlet");
             return;
         }
 
         if (idProductos.length != cantidades.length
                 || idProductos.length != precios.length) {
 
-            session.setAttribute(
-                    "mensajeError",
-                    "Los datos de los productos no coinciden. Verifique el carrito."
-            );
+            guardarAviso(session, false, "Los datos de los productos no coinciden. Verifique el carrito.");
 
-            response.sendRedirect("registrarVenta.jsp");
+            response.sendRedirect(request.getContextPath() + "/VentaServlet");
             return;
         }
 
@@ -139,44 +146,41 @@ public class VentaServlet extends HttpServlet {
             );
 
             if (exito) {
-                session.setAttribute(
-                        "mensajeExito",
-                        "Venta registrada correctamente. Ticket: "
-                        + venta.getNumeroTicket()
-                );
+                guardarAviso(session, true, "Venta registrada correctamente. Ticket: "
+                        + venta.getNumeroTicket());
             } else {
-                session.setAttribute(
-                        "mensajeError",
-                        "No se pudo registrar la venta debido a un error de persistencia."
-                );
+                guardarAviso(session, false, "No se pudo registrar la venta debido a un error de persistencia.");
             }
 
         } catch (ExcepcionNegocio ex) {
 
-            session.setAttribute("mensajeError", obtenerMensajeNegocio(ex));
+            guardarAviso(session, false, obtenerMensajeNegocio(ex));
 
         } catch (NumberFormatException ex) {
 
-            session.setAttribute(
-                    "mensajeError",
-                    "Los identificadores, cantidades y precios deben tener un formato válido."
-            );
+            guardarAviso(session, false, "Los identificadores, cantidades y precios deben tener un formato válido.");
 
         } catch (IllegalArgumentException ex) {
 
-            session.setAttribute("mensajeError", ex.getMessage());
+            guardarAviso(session, false, ex.getMessage());
 
         } catch (Exception ex) {
 
-            session.setAttribute(
-                    "mensajeError",
-                    "Ocurrió un error inesperado al procesar la venta."
-            );
+            guardarAviso(session, false, "Ocurrió un error inesperado al procesar la venta.");
 
             getServletContext().log("Error inesperado en VentaServlet", ex);
         }
 
-        response.sendRedirect("registrarVenta.jsp");
+        response.sendRedirect(request.getContextPath() + "/VentaServlet");
+    }
+
+    private static void guardarAviso(HttpSession session, boolean exito, String mensaje) {
+        synchronized (session) {
+            session.setAttribute(CLAVE_AVISO, new Aviso(exito, mensaje));
+        }
+    }
+
+    private record Aviso(boolean exito, String mensaje) {
     }
 
     private void cargarProductos(HttpServletRequest request) {

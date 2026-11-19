@@ -7,9 +7,6 @@
         return;
     }
 %>
-<c:url var="urlPanel" value="/panelGerente.jsp"/>
-<c:url var="urlReporte" value="/ReporteReposicionServlet"/>
-<c:url var="urlLogo" value="/img/logo.png"/>
 <fmt:setLocale value="es_PE" scope="page"/>
 <!DOCTYPE html>
 <html lang="es">
@@ -18,25 +15,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Planificación de reposiciones | La Esquina</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body { background-color: #f4f6f9; }
-        .bg-navy { background-color: #10253f; }
-        .text-navy { color: #10253f; }
-        .btn-navy { background-color: #10253f; color: #fff; }
-        .btn-navy:hover, .btn-navy:focus { background-color: #234367; color: #fff; }
-    </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="<c:url value='/css/operaciones-caja.css'/>">
+    <link rel="stylesheet" href="<c:url value='/css/gerencia.css'/>">
 </head>
-<body>
-    <nav class="navbar bg-navy py-2">
-        <div class="container-fluid px-4">
-            <a class="navbar-brand" href="${urlPanel}">
-                <img src="${urlLogo}" height="40" alt="La Esquina">
-            </a>
-            <a class="btn btn-outline-light btn-sm" href="${urlPanel}">Volver al panel</a>
-        </div>
-    </nav>
-    <main class="container py-4">
-        <h1 class="h2 text-navy mb-4">Planificación de reposiciones</h1>
+<body class="gerencia">
+<c:set var="tituloGerencia" value="Planificación de reposiciones"/>
+<c:set var="pantallaGerencia" value="Reposiciones"/>
+<%@include file="/WEB-INF/encabezadoGerencia.jspf"%>
+    <main class="cashier-main" id="contenidoGerencia" tabindex="-1">
 
         <c:choose>
             <c:when test="${not empty errorReporte}">
@@ -94,5 +81,8 @@
             </c:otherwise>
         </c:choose>
     </main>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

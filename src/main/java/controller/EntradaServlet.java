@@ -25,6 +25,8 @@ public class EntradaServlet extends HttpServlet {
 
     private final InventarioService inventarioService = new InventarioService();
 
+    private static final String CLAVE_AVISO = "avisoRegistroEntrada";
+
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -37,6 +39,14 @@ public class EntradaServlet extends HttpServlet {
         }
 
         cargarProductos(request);
+        Aviso aviso;
+        synchronized (session) {
+            aviso = (Aviso) session.getAttribute(CLAVE_AVISO);
+            session.removeAttribute(CLAVE_AVISO);
+        }
+        if (aviso != null) {
+            request.setAttribute(aviso.exito() ? "mensajeExito" : "mensajeError", aviso.mensaje());
+        }
         request.getRequestDispatcher("registrarEntrada.jsp").forward(request, response);
     }
 
@@ -67,34 +77,25 @@ public class EntradaServlet extends HttpServlet {
         String[] cantidades = request.getParameterValues("cantidad[]");
 
         if (documento == null || documento.trim().isEmpty()) {
-            session.setAttribute(
-                    "mensajeError",
-                    "Debe indicar el documento de referencia."
-            );
+            guardarAviso(session, false, "Debe indicar el documento de referencia.");
 
-            response.sendRedirect("registrarEntrada.jsp");
+            response.sendRedirect(request.getContextPath() + "/EntradaServlet");
             return;
         }
 
         if (idProductos == null || cantidades == null
                 || idProductos.length == 0) {
 
-            session.setAttribute(
-                    "mensajeError",
-                    "Debe agregar al menos un producto al ingreso."
-            );
+            guardarAviso(session, false, "Debe agregar al menos un producto al ingreso.");
 
-            response.sendRedirect("registrarEntrada.jsp");
+            response.sendRedirect(request.getContextPath() + "/EntradaServlet");
             return;
         }
 
         if (idProductos.length != cantidades.length) {
-            session.setAttribute(
-                    "mensajeError",
-                    "Los productos y sus cantidades no coinciden."
-            );
+            guardarAviso(session, false, "Los productos y sus cantidades no coinciden.");
 
-            response.sendRedirect("registrarEntrada.jsp");
+            response.sendRedirect(request.getContextPath() + "/EntradaServlet");
             return;
         }
 
@@ -143,44 +144,41 @@ public class EntradaServlet extends HttpServlet {
             );
 
             if (exito) {
-                session.setAttribute(
-                        "mensajeExito",
-                        "Entrada de productos registrada exitosamente. Movimiento N°: "
-                        + movimiento.getCodigoMovimiento()
-                );
+                guardarAviso(session, true, "Entrada de productos registrada exitosamente. Movimiento N°: "
+                        + movimiento.getCodigoMovimiento());
             } else {
-                session.setAttribute(
-                        "mensajeError",
-                        "No se pudo registrar la entrada. No se aplicaron cambios en el inventario."
-                );
+                guardarAviso(session, false, "No se pudo registrar la entrada. No se aplicaron cambios en el inventario.");
             }
 
         } catch (ExcepcionNegocio ex) {
 
-            session.setAttribute("mensajeError", obtenerMensajeNegocio(ex));
+            guardarAviso(session, false, obtenerMensajeNegocio(ex));
 
         } catch (NumberFormatException ex) {
 
-            session.setAttribute(
-                    "mensajeError",
-                    "Los identificadores y las cantidades deben ser números enteros válidos."
-            );
+            guardarAviso(session, false, "Los identificadores y las cantidades deben ser números enteros válidos.");
 
         } catch (IllegalArgumentException ex) {
 
-            session.setAttribute("mensajeError", ex.getMessage());
+            guardarAviso(session, false, ex.getMessage());
 
         } catch (Exception ex) {
 
-            session.setAttribute(
-                    "mensajeError",
-                    "Ocurrió un error inesperado al procesar la entrada."
-            );
+            guardarAviso(session, false, "Ocurrió un error inesperado al procesar la entrada.");
 
             getServletContext().log("Error inesperado en EntradaServlet", ex);
         }
 
-        response.sendRedirect("registrarEntrada.jsp");
+        response.sendRedirect(request.getContextPath() + "/EntradaServlet");
+    }
+
+    private static void guardarAviso(HttpSession session, boolean exito, String mensaje) {
+        synchronized (session) {
+            session.setAttribute(CLAVE_AVISO, new Aviso(exito, mensaje));
+        }
+    }
+
+    private record Aviso(boolean exito, String mensaje) {
     }
 
     private void cargarProductos(HttpServletRequest request) {

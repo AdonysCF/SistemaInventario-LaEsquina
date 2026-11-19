@@ -38,11 +38,17 @@
                     <p>Ingresa el documento de referencia y luego agrega los productos recibidos.</p>
                 </div>
 
-                <c:if test="${not empty mensajeExito}">
-                    <div class="alert alert-success shadow-sm"><i class="bi bi-check-circle me-2"></i><c:out value="${mensajeExito}"/></div>
+                <c:if test="${not empty requestScope.mensajeExito}">
+                    <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+                        <i class="bi bi-check-circle me-2"></i><c:out value="${requestScope.mensajeExito}"/>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar aviso"></button>
+                    </div>
                 </c:if>
-                <c:if test="${not empty mensajeError}">
-                    <div class="alert alert-danger shadow-sm"><i class="bi bi-exclamation-triangle me-2"></i><c:out value="${mensajeError}"/></div>
+                <c:if test="${not empty requestScope.mensajeError}">
+                    <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+                        <i class="bi bi-exclamation-triangle me-2"></i><c:out value="${requestScope.mensajeError}"/>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar aviso"></button>
+                    </div>
                 </c:if>
 
                 <form action="EntradaServlet" method="POST" id="formEntrada">
