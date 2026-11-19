@@ -1,190 +1,366 @@
 <%@page import="modelo.Usuario"%>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
+<%@taglib uri="jakarta.tags.core" prefix="c"%>
 <%
-    // VALIDACIÓN DE SEGURIDAD (Intocable)
     Usuario usr = (Usuario) session.getAttribute("usuarioSesion");
-    if (usr == null || !usr.getRol().equals("CAJERO")) {
-        response.sendRedirect("index.jsp");
+    if (usr == null || !"CAJERO".equals(usr.getRol())) {
+        response.sendRedirect(request.getContextPath() + "/index.jsp");
         return;
     }
 %>
+<c:url var="urlInicio" value="/panelCajero.jsp"/>
+<c:url var="urlVenta" value="/VentaServlet"/>
+<c:url var="urlConsulta" value="/ConsultaServlet"/>
+<c:url var="urlEntrada" value="/EntradaServlet"/>
+<c:url var="urlSalir" value="/login">
+    <c:param name="accion" value="salir"/>
+</c:url>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel Operativo (Caja) - La Esquina</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Panel del cajero | La Esquina</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Integración de Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         :root {
-            --color-navy: #10253F;
-            --color-mustard: #EAA81B;
+            --navy: #10243a;
+            --navy-active: #243a50;
+            --gold: #efab22;
+            --gold-hover: #ffbf41;
+            --canvas: #f3f5f8;
+            --line: #dce2ea;
+            --muted: #48566a;
+            --sidebar: 245px;
         }
+
         body {
-            background-color: #f4f6f9;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
-        
-        /* Utilidades de color personalizadas */
-        .bg-navy { background-color: var(--color-navy) !important; }
-        .text-navy { color: var(--color-navy) !important; }
-        .text-mustard { color: var(--color-mustard) !important; }
-        
-        /* Botones personalizados */
-        .btn-mustard {
-            background-color: var(--color-mustard);
-            color: #000;
-            border: none;
-            transition: all 0.3s ease;
-        }
-        .btn-mustard:hover {
-            background-color: #d19315;
-            color: #000;
-        }
-        .btn-outline-mustard {
-            color: var(--color-mustard);
-            border-color: var(--color-mustard);
-            transition: all 0.3s ease;
-        }
-        .btn-outline-mustard:hover {
-            background-color: var(--color-mustard);
-            color: #000;
+            margin: 0;
+            background: var(--canvas);
+            color: var(--navy);
+            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
         }
 
-        /* Navbar estilizado */
-        .navbar-brand img {
-            max-height: 40px;
-        }
-        .nav-link {
-            font-weight: 500;
-            color: rgba(255,255,255,0.8) !important;
-        }
-        .nav-link:hover, .nav-link.active {
-            color: var(--color-mustard) !important;
+        a:focus-visible, button:focus-visible {
+            outline: 3px solid #1962ad;
+            outline-offset: 4px;
         }
 
-        /* Tarjetas (Cards) del Dashboard */
-        .dashboard-card {
-            border: none;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            height: 100%;
+        .cashier-sidebar {
+            --bs-offcanvas-width: min(86vw, 300px);
+            overflow-y: auto;
+            color: #fff;
         }
-        .dashboard-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 24px rgba(0,0,0,0.1);
+
+        .sidebar-surface {
+            min-height: 100%;
+            padding: 1.35rem 1rem;
+            background: var(--navy);
         }
-        .card-icon {
-            font-size: 2.8rem;
-            margin-bottom: 10px;
+
+        .sidebar-surface :focus-visible,
+        .sale-card :focus-visible {
+            outline-color: var(--gold);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: .7rem;
+            min-height: 44px;
+            color: #fff;
+            font-size: 1.3rem;
+            font-weight: 750;
+            text-decoration: none;
+        }
+
+        .brand i { color: var(--gold); font-size: 1.55rem; }
+        .cashier-nav { margin-top: 1.85rem; }
+        .nav-group { margin-top: 1.5rem; }
+
+        .nav-heading {
+            margin: 0 0 .4rem;
+            padding-left: .85rem;
+            color: #c0ccda;
+            font-size: .75rem;
+            font-weight: 700;
+            letter-spacing: .075em;
+            text-transform: uppercase;
+        }
+
+        .menu-link {
+            display: flex;
+            align-items: center;
+            gap: .7rem;
+            min-height: 46px;
+            padding: .55rem .65rem .55rem .7rem;
+            border-inline-start: 3px solid transparent;
+            border-radius: 7px;
+            color: #f5f8fc;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .menu-link i { flex: 0 0 1.15rem; font-size: 1.15rem; }
+        .menu-link:hover, .menu-link[aria-current="page"] {
+            background: var(--navy-active);
+            color: #fff;
+        }
+
+        .menu-link[aria-current="page"] { border-inline-start-color: var(--gold); }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: .65rem 1rem;
+            min-height: 76px;
+            padding: .85rem clamp(1rem, 3vw, 2.25rem);
+            border-bottom: 1px solid var(--line);
+            background: #fff;
+        }
+
+        .title-group, .session-actions, .user-info {
+            display: flex;
+            align-items: center;
+            gap: .7rem;
+            min-width: 0;
+        }
+
+        .topbar h1 { margin: 0; font-size: clamp(1.15rem, 2vw, 1.5rem); font-weight: 750; }
+        .session-actions { margin-inline-start: auto; }
+        .user-info { line-height: 1.25; }
+        .user-info > i { font-size: 1.4rem; }
+        .user-info strong { display: block; overflow-wrap: anywhere; }
+        .user-info small { display: block; color: var(--muted); }
+        .topbar .btn { min-height: 44px; font-weight: 650; white-space: nowrap; }
+
+        .cashier-main {
+            max-width: 1320px;
+            margin: 0 auto;
+            padding: clamp(1rem, 3vw, 2.25rem);
+        }
+
+        .cashier-main h2 {
+            margin: 0 0 1.15rem;
+            font-size: clamp(1.35rem, 2.6vw, 1.85rem);
+            font-weight: 750;
+        }
+
+        .sale-card {
+            position: relative;
+            isolation: isolate;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            gap: clamp(1rem, 3.3vw, 2.5rem);
+            min-height: 235px;
+            padding: clamp(1.2rem, 4vw, 2.7rem);
+            border-radius: 15px;
+            background: var(--navy);
+            color: #fff;
+        }
+
+        .sale-icon {
+            flex: 0 0 auto;
+            padding-inline-end: clamp(.75rem, 3vw, 2rem);
+            border-inline-end: 1px solid #62748a;
+            color: var(--gold);
+            font-size: clamp(2.5rem, 5vw, 4.5rem);
+        }
+
+        .sale-decoration {
+            position: absolute;
+            z-index: -1;
+            right: -1rem;
+            bottom: -4rem;
+            color: #fff;
+            opacity: .08;
+            font-size: 17rem;
+            pointer-events: none;
+        }
+
+        .sale-card h3 {
+            margin: 0;
+            font-size: clamp(1.65rem, 3.8vw, 3rem);
+            font-weight: 780;
+            line-height: 1.08;
+        }
+
+        .sale-card p { margin: .65rem 0 1.2rem; color: #e5edf6; }
+
+        .sale-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: .65rem;
+            min-height: 48px;
+            padding: .65rem 1.15rem;
+            border-radius: 9px;
+            background: var(--gold);
+            color: var(--navy);
+            font-weight: 750;
+            text-decoration: none;
+        }
+
+        .sale-button:hover { background: var(--gold-hover); color: var(--navy); }
+
+        .quick-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .quick-card {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            align-items: center;
+            gap: clamp(.6rem, 2vw, 1.1rem);
+            min-height: 135px;
+            padding: clamp(.9rem, 2vw, 1.35rem);
+            border: 1px solid var(--line);
+            border-radius: 13px;
+            background: #fff;
+            color: var(--navy);
+            text-decoration: none;
+        }
+
+        .quick-card:hover { border-color: #69839e; background: #f9fbff; color: var(--navy); }
+
+        .quick-icon {
+            padding-inline-end: clamp(.6rem, 2vw, 1rem);
+            border-inline-end: 1px solid var(--line);
+            font-size: clamp(1.5rem, 3.5vw, 2.3rem);
+        }
+
+        .quick-card h3 { margin: 0 0 .3rem; font-size: clamp(1.05rem, 1.8vw, 1.4rem); font-weight: 750; }
+        .quick-card p { margin: 0; color: var(--muted); }
+        .quick-arrow { color: #895a00; font-size: 1.25rem; }
+
+        @media (min-width: 992px) {
+            .cashier-layout { display: grid; grid-template-columns: var(--sidebar) minmax(0, 1fr); }
+            .cashier-sidebar { position: sticky; top: 0; align-self: start; height: 100vh; }
+            .sidebar-surface { min-height: 100vh; }
+        }
+
+        @media (max-width: 767.98px) {
+            .quick-grid { grid-template-columns: minmax(0, 1fr); }
+            .quick-card { min-height: 104px; }
+            .sale-card { min-height: 195px; }
+        }
+
+        @media (max-width: 399.98px) {
+            .sale-icon, .sale-decoration { display: none; }
+            .user-info > i { display: none; }
         }
     </style>
 </head>
 <body>
+    <a class="visually-hidden-focusable position-absolute top-0 start-0 z-3 bg-white p-2"
+       href="#contenidoCajero">Ir al contenido principal</a>
 
-    <!-- BARRA DE NAVEGACIÓN SUPERIOR (NAVBAR) -->
-    <nav class="navbar navbar-expand-lg bg-navy shadow-sm py-2">
-        <div class="container-fluid px-4">
-            <a class="navbar-brand d-flex align-items-center" href="panelCajero.jsp">
-                <img src="img/logo.png" alt="Logo La Esquina">
-            </a>
-            
-            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCajero">
-                <span class="navbar-toggler-icon" style="filter: invert(1);"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse" id="navbarCajero">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-3">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="panelCajero.jsp"><i class="bi bi-house-door me-1"></i> Inicio</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="VentaServlet"><i class="bi bi-cart-check me-1"></i> Ventas</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="EntradaServlet"><i class="bi bi-box-arrow-in-down me-1"></i> Entradas</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="ConsultaServlet"><i class="bi bi-search me-1"></i> Consultas</a>
-                    </li>
-                </ul>
-                
-                <!-- Info del Usuario y Cierre de Sesión -->
-                <div class="d-flex align-items-center text-white">
-                    <i class="bi bi-person-badge fs-4 text-mustard me-2"></i>
-                    <div class="me-4 lh-1 text-end">
-                        <span class="d-block fw-bold"><%= usr.getNombreCompleto() %></span>
-                        <small class="text-mustard" style="font-size: 0.75rem;">Atención en Caja</small>
+    <div class="cashier-layout">
+        <aside class="cashier-sidebar offcanvas-lg offcanvas-start" tabindex="-1"
+               id="menuCajero" aria-labelledby="marcaCajero">
+            <div class="sidebar-surface">
+                <div class="d-flex justify-content-between align-items-center gap-2">
+                    <a id="marcaCajero" class="brand" href="${urlInicio}">
+                        <i class="bi bi-shop" aria-hidden="true"></i>
+                        <span>La Esquina</span>
+                    </a>
+                    <button type="button" class="btn-close btn-close-white d-lg-none p-2"
+                            data-bs-dismiss="offcanvas" data-bs-target="#menuCajero"
+                            aria-label="Cerrar menú"></button>
+                </div>
+
+                <nav class="cashier-nav" aria-label="Navegación del cajero">
+                    <a class="menu-link" href="${urlInicio}" aria-current="page">
+                        <i class="bi bi-house-door" aria-hidden="true"></i> Inicio
+                    </a>
+
+                    <div class="nav-group" role="group" aria-labelledby="menuVentas">
+                        <p class="nav-heading" id="menuVentas">Ventas</p>
+                        <a class="menu-link" href="${urlVenta}">
+                            <i class="bi bi-cart" aria-hidden="true"></i> Registrar venta
+                        </a>
                     </div>
-                    <a href="login?accion=salir" class="btn btn-outline-mustard btn-sm fw-bold px-3">
-                        <i class="bi bi-box-arrow-right me-1"></i> Salir
+
+                    <div class="nav-group" role="group" aria-labelledby="menuInventario">
+                        <p class="nav-heading" id="menuInventario">Inventario</p>
+                        <a class="menu-link" href="${urlConsulta}">
+                            <i class="bi bi-search" aria-hidden="true"></i> Consultar existencias
+                        </a>
+                        <a class="menu-link" href="${urlEntrada}">
+                            <i class="bi bi-box-arrow-in-down" aria-hidden="true"></i> Registrar entrada
+                        </a>
+                    </div>
+                </nav>
+            </div>
+        </aside>
+
+        <div>
+            <header class="topbar">
+                <div class="title-group">
+                    <button type="button" class="btn btn-outline-secondary d-lg-none"
+                            data-bs-toggle="offcanvas" data-bs-target="#menuCajero" aria-controls="menuCajero">
+                        <i class="bi bi-list" aria-hidden="true"></i> Menú
+                    </button>
+                    <h1>Panel del cajero</h1>
+                </div>
+                <div class="session-actions">
+                    <div class="user-info">
+                        <i class="bi bi-person-circle" aria-hidden="true"></i>
+                        <div>
+                            <strong><c:out value="${sessionScope.usuarioSesion.nombreCompleto}"/></strong>
+                            <small>Cajero</small>
+                        </div>
+                    </div>
+                    <a class="btn btn-outline-dark" href="<c:out value='${urlSalir}'/>">
+                        <i class="bi bi-box-arrow-right me-1" aria-hidden="true"></i> Cerrar sesión
                     </a>
                 </div>
-            </div>
-        </div>
-    </nav>
+            </header>
 
-    <!-- CONTENIDO PRINCIPAL (DASHBOARD OPERATIVO) -->
-    <div class="container mt-5 mb-5">
-        
-        <!-- Saludo -->
-        <div class="mb-4">
-            <h3 class="text-navy fw-bold">Turno Operativo de Caja</h3>
-            <p class="text-muted">Seleccione una operación para atender en mostrador.</p>
-        </div>
+            <main class="cashier-main" id="contenidoCajero" tabindex="-1">
+                <h2>Accesos rápidos</h2>
 
-        <!-- Cuadrícula de Tarjetas de Acción -->
-        <div class="row g-4 justify-content-center">
-            
-            <!-- Tarjeta Principal: Punto de Venta -->
-            <div class="col-md-6 col-lg-5">
-                <div class="card dashboard-card text-center p-4" style="border-top: 4px solid #0d6efd;">
-                    <div class="card-body d-flex flex-column align-items-center">
-                        <i class="bi bi-cart4 card-icon text-primary"></i>
-                        <h4 class="fw-bold text-navy">Punto de Venta</h4>
-                        <p class="text-muted mb-4">Módulo principal para registrar la venta de artículos a clientes y descontar stock.</p>
-                        <a href="VentaServlet" class="btn btn-primary btn-lg w-100 mt-auto fw-bold shadow-sm">
-                            Iniciar Venta
+                <section class="sale-card" aria-labelledby="tituloVenta">
+                    <i class="bi bi-cart sale-icon" aria-hidden="true"></i>
+                    <i class="bi bi-cart sale-decoration" aria-hidden="true"></i>
+                    <div>
+                        <h3 id="tituloVenta">Registrar venta</h3>
+                        <p>Agrega productos y cobra al cliente.</p>
+                        <a class="sale-button" href="${urlVenta}">
+                            Abrir caja <i class="bi bi-arrow-right" aria-hidden="true"></i>
                         </a>
                     </div>
-                </div>
-            </div>
+                </section>
 
-            <!-- Tarjeta: Recepción de Mercadería -->
-            <div class="col-md-6 col-lg-4">
-                <div class="card dashboard-card text-center p-4" style="border-top: 4px solid #198754;">
-                    <div class="card-body d-flex flex-column align-items-center">
-                        <i class="bi bi-box-seam card-icon text-success"></i>
-                        <h4 class="fw-bold text-navy">Recepción</h4>
-                        <p class="text-muted small mb-4">Ingresar reposiciones de proveedores al inventario del local.</p>
-                        <a href="EntradaServlet" class="btn btn-success w-100 mt-auto fw-bold">
-                            Ingresar Stock
-                        </a>
-                    </div>
+                <div class="quick-grid">
+                    <a class="quick-card" href="${urlConsulta}" aria-labelledby="tituloConsulta">
+                        <i class="bi bi-search quick-icon" aria-hidden="true"></i>
+                        <div>
+                            <h3 id="tituloConsulta">Consultar existencias</h3>
+                            <p>Revisa el stock y el precio de un producto.</p>
+                        </div>
+                        <i class="bi bi-arrow-right quick-arrow" aria-hidden="true"></i>
+                    </a>
+                    <a class="quick-card" href="${urlEntrada}" aria-labelledby="tituloEntrada">
+                        <i class="bi bi-box-arrow-in-down quick-icon" aria-hidden="true"></i>
+                        <div>
+                            <h3 id="tituloEntrada">Registrar entrada</h3>
+                            <p>Agrega mercadería al inventario.</p>
+                        </div>
+                        <i class="bi bi-arrow-right quick-arrow" aria-hidden="true"></i>
+                    </a>
                 </div>
-            </div>
-
-            <!-- Tarjeta: Consultas Rápidas -->
-            <div class="col-md-12 col-lg-3">
-                <div class="card dashboard-card text-center p-4" style="border-top: 4px solid var(--color-navy);">
-                    <div class="card-body d-flex flex-column align-items-center">
-                        <i class="bi bi-search card-icon text-navy"></i>
-                        <h5 class="fw-bold text-navy">Consulta de Precios</h5>
-                        <p class="text-muted small mb-4">Buscar precio y disponibilidad por nombre o SKU.</p>
-                        <a href="ConsultaServlet" class="btn btn-outline-secondary w-100 mt-auto text-navy border-secondary fw-bold">
-                            Ver Catálogo
-                        </a>
-                    </div>
-                </div>
-            </div>
-
+            </main>
         </div>
     </div>
-    
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

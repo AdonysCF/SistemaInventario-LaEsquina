@@ -1,13 +1,18 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package service;
 
-/**
- *
- * @author Adonys
- */
+import dao.ReporteReposicionDAO;
+import java.util.List;
+import modelo.ReporteReposicionFila;
+
 public class ReporteReposicionService {
-    
+
+    private static final int DIAS_ROTACION = 30;
+    private final ReporteReposicionDAO reporteDAO = new ReporteReposicionDAO();
+
+    public Reporte generar() {
+        return new Reporte(DIAS_ROTACION, reporteDAO.consultarProductosCriticos(DIAS_ROTACION));
+    }
+
+    public record Reporte(int diasRotacion, List<ReporteReposicionFila> filas) {
+    }
 }

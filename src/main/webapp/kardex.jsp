@@ -8,7 +8,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Historial de movimientos (Kardex) | La Esquina</title>
+    <title>Movimientos (Kardex) | La Esquina</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { background-color: #f4f6f9; }
@@ -17,19 +17,17 @@
         .btn-kardex { background-color: #10253f; color: #fff; }
         .btn-kardex:hover, .btn-kardex:focus { background-color: #234367; color: #fff; }
     </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="<c:url value='/css/operaciones-caja.css'/>">
+    <link rel="stylesheet" href="<c:url value='/css/gerencia.css'/>">
 </head>
-<body>
-    <nav class="navbar bg-navy py-2">
-        <div class="container-fluid px-4">
-            <a class="navbar-brand" href="${urlPanel}">
-                <img src="${urlLogo}" height="40" alt="La Esquina">
-            </a>
-            <a class="btn btn-outline-light btn-sm" href="${urlPanel}">Volver al panel</a>
-        </div>
-    </nav>
+<body class="gerencia">
+<c:set var="tituloGerencia" value="Movimientos (Kardex)"/>
+<c:set var="pantallaGerencia" value="Kardex"/>
+<%@include file="/WEB-INF/encabezadoGerencia.jspf"%>
+            <main class="cashier-main" id="contenidoGerencia" tabindex="-1">
 
-    <main class="container-fluid px-3 px-md-4 py-4">
-        <h1 class="h2 text-navy mb-4">Historial de movimientos (Kardex)</h1>
+
 
         <form action="${urlKardex}" method="get" class="card card-body border-0 shadow-sm mb-4">
             <div class="row g-3 align-items-end">
@@ -163,6 +161,9 @@
                 </c:if>
             </c:otherwise>
         </c:choose>
-    </main>
+            </main>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

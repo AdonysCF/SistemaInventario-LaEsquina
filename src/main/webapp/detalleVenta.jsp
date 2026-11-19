@@ -26,16 +26,16 @@
         .btn-navy { background-color: #10253f; color: #fff; }
         .btn-navy:hover, .btn-navy:focus { background-color: #234367; color: #fff; }
     </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="<c:url value='/css/operaciones-caja.css'/>">
+    <link rel="stylesheet" href="<c:url value='/css/gerencia.css'/>">
 </head>
-<body>
-    <nav class="navbar bg-navy py-2">
-        <div class="container-fluid px-4">
-            <a class="navbar-brand" href="${urlPanel}">
-                <img src="${urlLogo}" height="40" alt="La Esquina">
-            </a>
-            <a class="btn btn-outline-light btn-sm" href="${urlPanel}">Volver al panel</a>
-        </div>
-    </nav>
+<body class="gerencia">
+<c:set var="tituloGerencia" value="Detalle de la venta"/>
+<c:set var="pantallaGerencia" value="Historial"/>
+<%@include file="/WEB-INF/encabezadoGerencia.jspf"%>
+            <main class="cashier-main" id="contenidoGerencia" tabindex="-1">
+
 
     <c:url var="urlVolver" value="/HistorialVentaServlet">
         <c:param name="desde" value="${desde}"/>
@@ -44,9 +44,10 @@
         <c:param name="responsable" value="${responsable}"/>
         <c:param name="pagina" value="${pagina}"/>
     </c:url>
-    <main class="container py-4">
-        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-            <h1 class="h2 text-navy mb-0">Detalle de la venta</h1>
+
+        <div class="d-flex justify-content-end mb-4">
+
+
             <a class="btn btn-outline-secondary" href="<c:out value='${urlVolver}'/>">Volver al historial</a>
         </div>
         <c:if test="${not empty mensajeAnulacion}">
@@ -125,6 +126,9 @@
                 </form>
             </details>
         </c:if>
-    </main>
+            </main>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

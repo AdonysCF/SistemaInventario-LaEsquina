@@ -23,7 +23,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Gestion de Usuarios - La Esquina</title>
+    <title>Usuarios | La Esquina</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
           rel="stylesheet">
@@ -69,54 +69,25 @@
 
     </style>
 
+    <link rel="stylesheet" href="<c:url value='/css/operaciones-caja.css'/>">
+    <link rel="stylesheet" href="<c:url value='/css/gerencia.css'/>">
 </head>
 
-<body>
+<body class="gerencia">
+<c:set var="tituloGerencia" value="Usuarios"/>
+<c:set var="pantallaGerencia" value="Usuarios"/>
+<%@include file="/WEB-INF/encabezadoGerencia.jspf"%>
+            <main class="cashier-main" id="contenidoGerencia" tabindex="-1">
 
-    <!-- NAVBAR -->
-    <nav class="navbar bg-navy shadow-sm py-2">
 
-        <div class="container-fluid px-4">
-
-            <a class="navbar-brand" href="panelGerente.jsp">
-                <img src="img/logo.png"
-                     alt="Logo La Esquina"
-                     height="40">
-            </a>
-
-            <div class="d-flex align-items-center text-white">
-
-                <i class="bi bi-person-circle fs-5 me-2"></i>
-
-                <span class="me-3 fw-bold">
-                    <%= usr.getNombreCompleto() %>
-                </span>
-
-                <a href="panelGerente.jsp"
-                   class="btn btn-outline-light btn-sm">
-
-                    <i class="bi bi-arrow-left me-1"></i>
-                    Volver
-
-                </a>
-
-            </div>
-
-        </div>
-
-    </nav>
-
-    <div class="container-fluid px-4 py-4">
+    <div class="gerencia-modulo">
 
         <!-- ENCABEZADO -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center mb-4">
 
             <div>
 
-                <h3 class="text-navy fw-bold mb-1">
-                    <i class="bi bi-people me-2"></i>
-                    Gestion de Usuarios
-                </h3>
+                
 
                 <p class="text-muted mb-0">
                     Administra las cuentas y roles del personal de la tienda.
@@ -525,7 +496,9 @@
         </div>
 
     </div>
-
+            </main>
+        </div>
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js">
     </script>
 
@@ -550,7 +523,5 @@
         }
 
     </script>
-
 </body>
-
 </html>

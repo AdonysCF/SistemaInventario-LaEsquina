@@ -1,0 +1,85 @@
+.gerencia {
+    --color-navy: var(--navy);
+    --color-mustard: var(--gold);
+}
+
+.gerencia .gerencia-nav { margin-top: 1.15rem; }
+.gerencia-nav .nav-group { margin-top: .95rem; }
+.gerencia-nav .menu-link { min-height: 42px; font-size: .95rem; }
+.gerencia-nav .nav-heading { margin-bottom: .2rem; }
+.gerencia .topbar { position: sticky; top: 0; z-index: 1030; }
+.gerencia .cashier-main { min-width: 0; }
+
+.gerencia-section-title {
+    margin: 0 0 1.15rem;
+    font-size: clamp(1.35rem, 2.5vw, 1.85rem);
+    font-weight: 750;
+}
+
+.gerencia-accesos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.gerencia-acceso {
+    display: flex;
+    align-items: flex-start;
+    gap: clamp(.8rem, 2vw, 1.25rem);
+    min-height: 145px;
+    padding: clamp(1rem, 2.5vw, 1.55rem);
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    background: #fff;
+    color: var(--navy);
+    text-decoration: none;
+}
+
+.gerencia-acceso:hover { border-color: #69839e; background: #f9fbff; color: var(--navy); }
+.gerencia-acceso-icono { flex: 0 0 auto; font-size: 1.85rem; line-height: 1; }
+.gerencia-acceso h3 { margin: 0 0 .4rem; font-size: clamp(1.12rem, 1.9vw, 1.45rem); font-weight: 750; }
+.gerencia-acceso p { margin: 0 0 .7rem; color: var(--muted); }
+
+.gerencia-acceso-enlace {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    color: var(--navy);
+    font-weight: 700;
+}
+
+.gerencia-destacado {
+    grid-column: 1 / -1;
+    min-height: 190px;
+    padding: clamp(1.3rem, 3vw, 2.3rem);
+    align-items: center;
+    border-color: var(--navy);
+    background: var(--navy);
+    color: #fff;
+}
+
+.gerencia-destacado:hover { border-color: #243e59; background: #243e59; color: #fff; }
+.gerencia-destacado h3 { font-size: clamp(1.5rem, 3vw, 2.35rem); }
+.gerencia-destacado p { color: #e5edf6; }
+.gerencia-destacado .gerencia-acceso-icono { color: var(--gold); font-size: clamp(2rem, 5vw, 4rem); }
+
+.gerencia-destacado .gerencia-acceso-enlace {
+    min-height: 44px;
+    padding: .45rem .85rem;
+    border-radius: 8px;
+    background: var(--gold);
+    color: var(--navy);
+}
+
+.gerencia .card-custom { border: 1px solid var(--line); }
+.gerencia .btn-mustard { background: var(--gold); color: var(--navy); }
+.gerencia .btn-mustard:hover { background: var(--gold-hover); color: var(--navy); }
+.gerencia .btn-navy { background: var(--navy); color: #fff; }
+.gerencia .btn-navy:hover { background: #243e59; color: #fff; }
+.gerencia .table-responsive { overflow-x: auto; }
+
+@media (max-width: 767.98px) {
+    .gerencia-accesos { grid-template-columns: minmax(0, 1fr); }
+    .gerencia-acceso { min-height: 115px; }
+    .gerencia-destacado { min-height: 155px; }
+}

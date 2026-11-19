@@ -14,7 +14,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Registrar Ajuste de Stock - La Esquina</title>
+        <title>Ajustar stock | La Esquina</title>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
         <style>
@@ -58,26 +58,17 @@
                 color: #842029;
             }
         </style>
-    </head>
-    <body>
+        <link rel="stylesheet" href="<c:url value='/css/operaciones-caja.css'/>">
+    <link rel="stylesheet" href="<c:url value='/css/gerencia.css'/>">
+</head>
+    <body class="gerencia">
+<c:set var="tituloGerencia" value="Ajustar stock"/>
+<c:set var="pantallaGerencia" value="Ajuste"/>
+<%@include file="/WEB-INF/encabezadoGerencia.jspf"%>
+            <main class="cashier-main" id="contenidoGerencia" tabindex="-1">
 
-        <!-- NAVBAR EXCLUSIVO GERENCIA -->
-        <nav class="navbar navbar-expand-lg bg-navy shadow-sm py-2">
-            <div class="container-fluid px-4">
-                <a class="navbar-brand" href="panelGerente.jsp">
-                    <img src="img/logo.png" alt="Logo La Esquina" height="40">
-                </a>
-                <div class="d-flex align-items-center text-white ms-auto">
-                    <i class="bi bi-person-circle fs-5 me-2" style="color: var(--color-mustard)"></i>
-                    <span class="me-3 fw-bold">Gerencia: <%= usr.getNombreCompleto()%></span>
-                    <a href="panelGerente.jsp" class="btn btn-outline-light btn-sm fw-bold">
-                        <i class="bi bi-arrow-left me-1"></i> Volver al Panel
-                    </a>
-                </div>
-            </div>
-        </nav>
 
-        <div class="container-fluid px-4 py-4">
+        <div class="gerencia-modulo">
 
             <c:url var="urlHistorialAjustes" value="/KardexServlet">
                 <c:param name="tipo" value="AJUSTE"/>
@@ -86,8 +77,8 @@
                 <div class="d-flex align-items-center">
                     <i class="bi bi-sliders fs-2 text-warning me-3" aria-hidden="true"></i>
                     <div>
-                        <h3 class="text-navy fw-bold mb-0">Ajuste de Inventario (Kardex)</h3>
-                        <p class="text-muted mb-0">Sincerar stock por mermas, vencimientos o descuadres físicos (RN-04).</p>
+                        
+                        <p class="text-muted mb-0">Corrige las existencias por merma, vencimiento o diferencias de conteo.</p>
                     </div>
                 </div>
                 <a href="<c:out value='${urlHistorialAjustes}'/>"
@@ -213,7 +204,7 @@
                                 </div>
 
                                 <div class="p-4 bg-light border-top">
-                                    <button type="submit" class="btn btn-navy w-100 fw-bold shadow-sm py-2 fs-5" id="btnGuardarAjuste" style="background-color: var(--color-navy); color: white;" disabled>
+                                    <button type="submit" class="btn btn-confirmar operation-button w-100 fw-bold py-2" id="btnGuardarAjuste" disabled>
                                         <i class="bi bi-save me-2"></i>Confirmar Ajuste Múltiple
                                     </button>
                                 </div>
@@ -223,7 +214,9 @@
                 </div>
             </form>
         </div>
-
+            </main>
+        </div>
+    </div>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
         <script>
                                             // Cambia la etiqueta del input dependiendo si eliges positivo o negativo
@@ -436,5 +429,6 @@
                                                 }
                                             }
         </script>
-    </body>
+    
+</body>
 </html>

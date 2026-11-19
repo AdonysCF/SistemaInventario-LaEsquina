@@ -21,7 +21,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Gestion de Categorias - La Esquina</title>
+    <title>Categorías | La Esquina</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
           rel="stylesheet">
@@ -68,50 +68,28 @@
             background-color: rgba(234,168,27,0.05);
         }
     </style>
+    <link rel="stylesheet" href="<c:url value='/css/operaciones-caja.css'/>">
+    <link rel="stylesheet" href="<c:url value='/css/gerencia.css'/>">
 </head>
 
-<body>
+<body class="gerencia">
+<c:set var="tituloGerencia" value="Categorías"/>
+<c:set var="pantallaGerencia" value="Categorias"/>
+<%@include file="/WEB-INF/encabezadoGerencia.jspf"%>
+            <main class="cashier-main" id="contenidoGerencia" tabindex="-1">
 
-    <!-- NAVBAR -->
-    <nav class="navbar navbar-expand-lg bg-navy shadow-sm py-2">
-        <div class="container-fluid px-4">
 
-            <a class="navbar-brand" href="panelGerente.jsp">
-                <img src="img/logo.png" alt="Logo La Esquina" height="40">
-            </a>
-
-            <div class="d-flex align-items-center text-white ms-auto">
-
-                <i class="bi bi-person-circle fs-5 me-2"
-                   style="color: var(--color-mustard)"></i>
-
-                <span class="me-3 fw-bold">
-                    Gerencia: <%= usr.getNombreCompleto() %>
-                </span>
-
-                <a href="panelGerente.jsp"
-                   class="btn btn-outline-light btn-sm fw-bold">
-                    <i class="bi bi-arrow-left me-1"></i>
-                    Volver al Panel
-                </a>
-
-            </div>
-        </div>
-    </nav>
-
-    <div class="container-fluid px-4 py-4">
+    <div class="gerencia-modulo">
 
         <!-- ENCABEZADO -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center mb-4">
 
             <div class="d-flex align-items-center">
 
                 <i class="bi bi-tags fs-2 text-primary me-3"></i>
 
                 <div>
-                    <h3 class="text-navy fw-bold mb-0">
-                        Gestion de Categorias
-                    </h3>
+                    
 
                     <p class="text-muted mb-0">
                         Administra las categorias de los productos de la tienda.
@@ -442,7 +420,9 @@
         </div>
 
     </div>
-
+            </main>
+        </div>
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js">
     </script>
 
@@ -508,6 +488,5 @@
         }
 
     </script>
-
 </body>
 </html>
