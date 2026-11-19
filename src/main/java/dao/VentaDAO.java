@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import modelo.DetalleVenta;
+import modelo.ReporteVentaFila;
 import modelo.Venta;
 import modelo.VentaDetalleRegistro;
 import modelo.VentaResumen;
@@ -200,6 +201,82 @@ public class VentaDAO {
     }
 
     public record CantidadVendida(int idProducto, long cantidad) {
+    }
+
+    public ReporteConsolidado consultarReporteVentas(LocalDateTime desde, LocalDateTime hastaExclusiva) {
+        String sql = """
+                WITH lineas AS (
+                    SELECT v.id_venta, p.id_producto, p.codigo_sku AS sku,
+                           p.nombre AS producto, c.id_categoria, c.nombre AS categoria,
+                           CAST(d.cantidad AS BIGINT) AS unidades, d.subtotal
+                    FROM venta v
+                    JOIN detalle_venta d ON d.id_venta = v.id_venta
+                    JOIN producto p ON p.id_producto = d.id_producto
+                    JOIN categoria c ON c.id_categoria = p.id_categoria
+                    WHERE v.estado = 'CONFIRMADA'
+                      AND v.fecha_hora >= ?
+                """;
+        if (hastaExclusiva != null) {
+            sql += " AND v.fecha_hora < ?\n";
+        }
+        sql += """
+                )
+                SELECT 0 AS nivel, CAST(NULL AS VARCHAR(30)) AS sku,
+                       CAST(NULL AS VARCHAR(150)) AS producto,
+                       CAST(NULL AS VARCHAR(150)) AS categoria,
+                       COALESCE(SUM(unidades), 0) AS unidades,
+                       COUNT(DISTINCT id_venta) AS tickets,
+                       COALESCE(SUM(subtotal), 0) AS monto
+                FROM lineas
+                UNION ALL
+                SELECT 1, sku, producto, categoria,
+                       SUM(unidades), COUNT(DISTINCT id_venta), SUM(subtotal)
+                FROM lineas
+                GROUP BY id_producto, sku, producto, id_categoria, categoria
+                UNION ALL
+                SELECT 2, CAST(NULL AS VARCHAR(30)), CAST(NULL AS VARCHAR(150)), categoria,
+                       SUM(unidades), COUNT(DISTINCT id_venta), SUM(subtotal)
+                FROM lineas
+                GROUP BY id_categoria, categoria
+                ORDER BY nivel, monto DESC, categoria, producto, sku
+                """;
+
+        List<ReporteVentaFila> porProducto = new ArrayList<>();
+        List<ReporteVentaFila> porCategoria = new ArrayList<>();
+        try (Connection conn = ConexionDB.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setTimestamp(1, Timestamp.valueOf(desde));
+            if (hastaExclusiva != null) {
+                ps.setTimestamp(2, Timestamp.valueOf(hastaExclusiva));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next() || rs.getInt("nivel") != 0) {
+                    throw new SQLException("La consulta no devolvió el total del período.");
+                }
+                ReporteVentaFila total = leerFilaReporte(rs);
+                while (rs.next()) {
+                    ReporteVentaFila fila = leerFilaReporte(rs);
+                    if (rs.getInt("nivel") == 1) {
+                        porProducto.add(fila);
+                    } else {
+                        porCategoria.add(fila);
+                    }
+                }
+                return new ReporteConsolidado(total, List.copyOf(porProducto), List.copyOf(porCategoria));
+            }
+        } catch (SQLException ex) {
+            throw new ExcepcionPersistencia("No se pudo generar el reporte de ventas.", ex);
+        }
+    }
+
+    private static ReporteVentaFila leerFilaReporte(ResultSet rs) throws SQLException {
+        return new ReporteVentaFila(rs.getString("sku"), rs.getString("producto"),
+                rs.getString("categoria"), rs.getLong("unidades"), rs.getInt("tickets"),
+                rs.getBigDecimal("monto"));
+    }
+
+    public record ReporteConsolidado(ReporteVentaFila total, List<ReporteVentaFila> porProducto,
+            List<ReporteVentaFila> porCategoria) {
     }
 
     private static VentaResumen leerResumen(ResultSet rs) throws SQLException {

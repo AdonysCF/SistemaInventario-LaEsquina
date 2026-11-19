@@ -312,6 +312,18 @@
 
                 
 
+                <!-- Tarjeta: Reporte de ventas -->
+                <div class="col-md-6 col-lg-6">
+                    <div class="card dashboard-card text-center p-4">
+                        <div class="card-body d-flex flex-column align-items-center">
+                            <i class="bi bi-bar-chart-line card-icon text-navy" aria-hidden="true"></i>
+                            <h5 class="fw-bold text-navy">Reporte de ventas</h5>
+                            <p class="text-muted small mb-4">Consulta lo vendido por producto y categoría en un período.</p>
+                            <a href="ReporteVentasServlet" class="btn btn-navy w-100 mt-auto"
+                               style="background-color: var(--color-navy); color: white;">Generar reporte</a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
