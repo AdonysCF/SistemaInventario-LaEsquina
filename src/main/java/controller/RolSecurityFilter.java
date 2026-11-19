@@ -82,7 +82,11 @@ public class RolSecurityFilter implements Filter {
 
                     // Ajustes de inventario
                     "/ajusteservlet",
-                    "/registrarajuste.jsp"
+                    "/registrarajuste.jsp",
+                    
+                    //kardex
+                    "/KardexServlet",
+                    "/kardex.jsp"
             )
     );
 

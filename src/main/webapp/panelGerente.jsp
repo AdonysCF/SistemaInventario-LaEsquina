@@ -113,6 +113,9 @@
                         <li class="nav-item">
                             <a class="nav-link" href="ConsultaServlet"><i class="bi bi-search me-1"></i> Consultas</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="KardexServlet"><i class="bi bi-clock-history me-1"></i> Kardex</a>
+                        </li>
                     </ul>
 
                     <!-- Info del Usuario y Cierre de Sesión -->
